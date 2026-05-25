@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Estoque – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+  <h1>Estoque</h1>
+  <div>
+    <a href="{{ url_for('estoque.estoque') }}" class="btn btn-secondary">Todos</a>
+    <a href="{{ url_for('estoque.estoque_por_origem', origem='proprias') }}" class="btn btn-secondary">Próprias</a>
+    <a href="{{ url_for('estoque.estoque_por_origem', origem='consignadas') }}"
+      class="btn btn-secondary">Consignadas</a>
+    <a href="{{ url_for('estoque.estoque_por_origem', origem='fornecedor') }}" class="btn btn-secondary">Fornecedor</a>
+    <a href="{{ url_for('estoque.estoque_form') }}" class="btn btn-primary">+ Novo</a>
+  </div>
+</div>
+
+<div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+  <div class="card text-center" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+    <h3 style="margin: 0; font-size: 1rem; color: #aaa;">Total</h3>
+    <div style="font-size: 1.5rem; font-weight: bold;">{{ total }}</div>
+  </div>
+  <div class="card text-center" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+    <h3 style="margin: 0; font-size: 1rem; color: #aaa;">Próprias</h3>
+    <div style="font-size: 1.5rem; font-weight: bold; color: var(--success-color);">{{ propria }}</div>
+  </div>
+  <div class="card text-center" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+    <h3 style="margin: 0; font-size: 1rem; color: #aaa;">Consignadas</h3>
+    <div style="font-size: 1.5rem; font-weight: bold; color: var(--warning-color);">{{ consignada }}</div>
+  </div>
+  <div class="card text-center" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+    <h3 style="margin: 0; font-size: 1rem; color: #aaa;">Fornecedor</h3>
+    <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">{{ fornecedor }}</div>
+  </div>
+</div>
+
+{% if not motos %}
+<p class="text-center">Nenhuma moto cadastrada.</p>
+{% else %}
+<div class="card table-responsive">
+  <form id="formTable">
+    <table>
+      <thead>
+        <tr>
+          <th width="40"></th>
+          <th width="40"><i class="fas fa-camera"></i></th>
+          <th>ID</th>
+          <th>Modelo</th>
+          <th>Chassi</th>
+          <th>Placa</th>
+          <th>Ano</th>
+          <th>KM</th>
+          <th>Custo</th>
+          <th>Preço</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in motos %}
+        <tr onclick="document.getElementById('radio_{{ m.id }}').click();" style="cursor: pointer;">
+          <td><input type="radio" name="moto_id" id="radio_{{ m.id }}" value="{{ m.id }}"></td>
+          <td>
+            {% if m.fotos_url %}
+            <a href="{{ m.fotos_url }}" target="_blank" title="Ver Fotos">📷</a>
+            {% else %}
+            <span style="opacity:0.2">📷</span>
+            {% endif %}
+          </td>
+          <td>{{ m.id }}</td>
+          <td>{{ m.modelo or '—' }}</td>
+          <td>{{ m.chassi or '—' }}</td>
+          <td>{{ m.placa or '—' }}</td>
+          <td>{{ m.ano or '—' }}</td>
+          <td>{{ m.km or '—' }}</td>
+          <td>{{ '%.2f'|format(m.custo_total) }}</td>
+          <td>{{ '%.2f'|format(m.preco_venda) if m.preco_venda else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex-between mt-4 mb-4" style="background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #444;">
+  <div class="text-secondary">Página <strong>{{ page }}</strong> de {{ total_pages }} ({{ total }} motos)</div>
+  <div style="display: flex; gap: 10px;">
+    {% if page > 1 %}
+      {% if origem_slug %}
+        <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug, page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+      {% else %}
+        <a href="{{ url_for('estoque.estoque', page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+      {% endif %}
+    {% else %}
+      <button class="btn btn-secondary" disabled>&laquo; Anterior</button>
+    {% endif %}
+
+    {% if page < total_pages %}
+      {% if origem_slug %}
+        <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug, page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+      {% else %}
+        <a href="{{ url_for('estoque.estoque', page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+      {% endif %}
+    {% else %}
+      <button class="btn btn-secondary" disabled>Próximo &raquo;</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div
+  style="position: sticky; bottom: 20px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; display: flex; gap: 10px; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+  <button id="btnEdit" class="btn btn-secondary" disabled>Editar</button>
+  <button id="btnDel" class="btn btn-danger" disabled>Excluir</button>
+</div>
+
+
+<!-- Modal de Confirmação de Exclusão -->
+<div id="modalAuth"
+  style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+  <div style="background: #222; padding: 25px; border-radius: 8px; width: 300px; border: 1px solid #444;">
+    <h3 style="margin-top: 0; text-align: center;">Confirmar Exclusão</h3>
+    <p class="text-secondary text-center" style="font-size: 0.9rem;">Digite suas credenciais para liberar.</p>
+
+    <label style="display:block; margin-bottom: 5px;">Usuário</label>
+    <input type="text" id="authObj_user" class="form-control"
+      style="width: 100%; margin-bottom: 15px; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+
+    <label style="display:block; margin-bottom: 5px;">Senha</label>
+    <input type="password" id="authObj_pass" class="form-control"
+      style="width: 100%; margin-bottom: 20px; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+
+    <div style="display: flex; gap: 10px;">
+      <button onclick="closeModal()" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+      <button onclick="confirmDelete()" class="btn btn-danger" style="flex: 1;">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const f = document.getElementById('formTable'),
+    e = document.getElementById('btnEdit'),
+    d = document.getElementById('btnDel');
+
+  let deleteTargetId = null;
+
+  function closeModal() {
+    document.getElementById('modalAuth').style.display = 'none';
+    document.getElementById('authObj_pass').value = '';
+  }
+
+  function confirmDelete() {
+    const u = document.getElementById('authObj_user').value;
+    const p = document.getElementById('authObj_pass').value;
+
+    if (!u || !p) {
+      alert('Preencha usuário e senha.');
+      return;
+    }
+
+    fetch(`${SCRIPT_ROOT}/estoque/excluir/${deleteTargetId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': "{{ csrf_token() }}"
+      },
+      body: JSON.stringify({ usuario: u, senha: p })
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          location.reload();
+        } else {
+          alert(res.error || 'Erro ao excluir.');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Erro de conexão.');
+      });
+  }
+
+  if (f) {
+    f.addEventListener('change', () => {
+      const sel = f.querySelector('input[name="moto_id"]:checked'),
+        ok = !!sel;
+      e.disabled = d.disabled = !ok;
+      if (ok) {
+        const id = sel.value;
+        e.onclick = () => location.href = `${SCRIPT_ROOT}/estoque/editar/${id}`;
+
+        d.onclick = () => {
+          deleteTargetId = id;
+          document.getElementById('modalAuth').style.display = 'flex';
+          document.getElementById('authObj_user').value = "{{ current_user.usuario }}";
+          document.getElementById('authObj_pass').focus();
+        };
+      }
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Usuários do Sistema</h1>
+    <a href="{{ url_for('auth.usuarios_novo') }}" class="btn btn-primary">Novo Usuário</a>
+</div>
+
+<div class="card table-responsive">
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th style="text-align: left;">ID</th>
+                <th style="text-align: left;">Usuário</th>
+                <th style="text-align: center;">Função</th>
+                <th style="text-align: right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.usuario }}</td>
+                <td style="text-align: center;">
+                    {% if u.is_admin %}
+                    <span
+                        style="background: #F59E0B; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">Admin</span>
+                    {% else %}
+                    <span style="color: #aaa; font-size: 0.8rem;">Usuário</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    {% if u.id != current_user.id %}
+                    <form action="{{ url_for('auth.usuarios_excluir', uid=u.id) }}" method="POST"
+                        style="display:inline;" onsubmit="return confirm('Excluir usuário {{ u.usuario }}?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
+                    </form>
+                    {% else %}
+                    <span class="text-secondary">Você</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

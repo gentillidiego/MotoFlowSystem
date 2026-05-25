@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit %}Editar Lead{% else %}Novo Lead{% endif %} – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 0 auto;">
+  <h1 class="text-center">{% if edit %}Editar Lead{% else %}Novo Lead{% endif %}</h1>
+
+  <div class="card">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <label>Nome *</label>
+      <input type="text" name="nome" value="{{ lead.nome or '' }}" required>
+
+      <label>Telefone</label>
+      <input type="text" name="telefone" value="{{ lead.telefone or '' }}">
+
+      <label>CPF</label>
+      <input type="text" name="cpf" value="{{ lead.cpf or '' }}">
+
+      <label>Data Nascimento</label>
+      <input type="date" name="data_nasc" value="{{ lead.data_nasc or '' }}" style="color-scheme: dark;">
+
+      <label>Interesse (Moto)</label>
+      <select name="produto_id">
+        <option value="">-- Selecione (Opcional) --</option>
+        {% for m in motos %}
+        <option value="{{ m.id }}" {% if lead.produto_id==m.id %}selected{% endif %}>{{ m.label }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Temperatura</label>
+      <select name="temperatura">
+        <option value="Frio" {% if lead.temperatura=='Frio' %}selected{% endif %}>Frio (Curioso)</option>
+        <option value="Morno" {% if lead.temperatura=='Morno' %}selected{% endif %}>Morno (Interessado)</option>
+        <option value="Quente" {% if lead.temperatura=='Quente' %}selected{% endif %}>Quente (Pronto para fechar)
+        </option>
+      </select>
+
+      <label>Observações</label>
+      <textarea name="observacoes" rows="4">{{ lead.observacoes or '' }}</textarea>
+
+      <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Lead</button>
+        <a href="{{ url_for('vendas.leads') }}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

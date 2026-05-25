@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas da Venda – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 0 auto;">
+  <div class="flex-between mb-4">
+    <h1>Despesas da Venda #{{ venda.id }}</h1>
+    <a href="{{ url_for('financeiro.financeiro') }}" class="btn btn-secondary">Voltar ao Financeiro</a>
+  </div>
+
+  <div class="card mb-4">
+    <h3>Detalhes da Venda</h3>
+    <p><strong>Cliente:</strong> {{ venda.nome }}</p>
+    <p><strong>Veículo:</strong> {{ venda.modelo or '—' }}</p>
+  </div>
+
+  {% if moto %}
+  <div class="card mb-4" style="border: 1px solid #444;">
+    <h3 style="color: #ccc;">Custos de Origem (Estoque)</h3>
+    <p><strong>Preço de Aquisição:</strong> R$ {{ '%.2f'|format(moto.preco_aquisicao) }}</p>
+
+    {% if custos_origem %}
+    <h4 style="font-size: 1rem; margin-top: 15px; color: #888;">Despesas no Estoque:</h4>
+    <ul style="list-style: none; padding: 0; margin: 0;">
+      {% set ns = namespace(total_origem=moto.preco_aquisicao) %}
+      {% for co in custos_origem %}
+      {% set ns.total_origem = ns.total_origem + co.valor %}
+      <li style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 5px 0;">
+        <span class="text-secondary">{{ co.descricao }}</span>
+        <span>R$ {{ '%.2f'|format(co.valor) }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <div style="text-align: right; margin-top: 10px; font-weight: bold;">
+      <span class="text-secondary" style="font-weight: normal;">Custo Total (Aquisição + Despesas):</span>
+      R$ {{ '%.2f'|format(ns.total_origem) }}
+    </div>
+    {% else %}
+    <p class="text-secondary">Nenhuma despesa de estoque registrada.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="POST" style="display: grid; grid-template-columns: 1fr 150px auto; gap: 10px; margin-bottom: 0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="text" name="descricao" placeholder="Descrição da Despesa" required style="margin-bottom: 0;">
+      <input type="number" step="0.01" name="valor" placeholder="Valor (R$)" required style="margin-bottom: 0;">
+      <button type="submit" class="btn btn-primary">Adicionar</button>
+    </form>
+  </div>
+
+  <div class="card table-responsive mt-4">
+    <table>
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>Valor</th>
+          <th width="50"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in custos %}
+        <tr>
+          <td>{{ c.descricao }}</td>
+          <td>R$ {{ '%.2f'|format(c.valor) }}</td>
+          <td>
+            <form action="{{ url_for('vendas.venda_custos_excluir', vid=venda.id, cid=c.id) }}" method="POST"
+              onsubmit="return confirm('Excluir?');" style="margin: 0;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn btn-danger" style="padding: 5px 10px;">×</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="text-center text-secondary">Nenhuma despesa extra lançada.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

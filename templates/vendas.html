@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Vendas – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+  <h1>Histórico de Vendas</h1>
+  <a href="{{ url_for('vendas.vendas_novo') }}" class="btn btn-primary">+ Nova Venda</a>
+</div>
+
+{% if not vendas %}
+<p class="text-center text-secondary">Nenhuma venda registrada.</p>
+{% else %}
+<div class="card table-responsive">
+  <form id="formV">
+    <table>
+      <thead>
+        <tr>
+          <th width="40"></th>
+          <th>Data</th>
+          <th>Cliente</th>
+          <th>Veículo</th>
+          <th>Local</th>
+          <th>Contato</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vendas %}
+        <tr onclick="document.getElementById('radio_{{ v.id }}').click();" style="cursor: pointer;">
+          <td><input type="radio" name="venda_id" id="radio_{{ v.id }}" value="{{ v.id }}"></td>
+          <td>{{ v.data_venda }}</td>
+          <td>{{ v.nome }}</td>
+          <td>{{ v.modelo or '—' }}</td>
+          <td>{{ v.cidade or '—' }}</td>
+          <td>{{ v.telefone or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex-between mt-4 mb-4" style="background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #444;">
+  <div class="text-secondary">Página <strong>{{ page }}</strong> de {{ total_pages }} ({{ total }} vendas)</div>
+  <div style="display: flex; gap: 10px;">
+    {% if page > 1 %}
+      <a href="{{ url_for('vendas.vendas_home', page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+    {% else %}
+      <button class="btn btn-secondary" disabled>&laquo; Anterior</button>
+    {% endif %}
+
+    {% if page < total_pages %}
+      <a href="{{ url_for('vendas.vendas_home', page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+    {% else %}
+      <button class="btn btn-secondary" disabled>Próximo &raquo;</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Action Bar (Sticky Bottom or Fixed) -->
+<div
+  style="position: sticky; bottom: 20px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; display: flex; gap: 10px; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); flex-wrap: wrap;">
+  <button id="btnTransf" class="btn btn-secondary" disabled>Iniciar Transf.</button>
+  <button id="btnProp" class="btn btn-secondary" disabled>Proposta</button>
+  <button id="btnTermo" class="btn btn-secondary" disabled>Termo</button>
+  <button id="btnEdit" class="btn btn-secondary" disabled>Editar</button>
+  <button id="btnDel" class="btn btn-danger" disabled>Excluir</button>
+</div>
+
+
+<!-- Modal de Confirmação de Exclusão -->
+<div id="modalAuth"
+  style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+  <div style="background: #222; padding: 25px; border-radius: 8px; width: 300px; border: 1px solid #444;">
+    <h3 style="margin-top: 0; text-align: center;">Confirmar Exclusão</h3>
+    <p class="text-secondary text-center" style="font-size: 0.9rem;">Digite suas credenciais para liberar.</p>
+
+    <label style="display:block; margin-bottom: 5px;">Usuário</label>
+    <input type="text" id="authObj_user" class="form-control"
+      style="width: 100%; margin-bottom: 15px; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+
+    <label style="display:block; margin-bottom: 5px;">Senha</label>
+    <input type="password" id="authObj_pass" class="form-control"
+      style="width: 100%; margin-bottom: 20px; padding: 8px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+
+    <div style="display: flex; gap: 10px;">
+      <button onclick="closeModal()" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+      <button onclick="confirmDelete()" class="btn btn-danger" style="flex: 1;">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('formV'),
+    btnEdi = document.getElementById('btnEdit'),
+    btnDel = document.getElementById('btnDel'),
+    btnTra = document.getElementById('btnTransf'),
+    btnProp = document.getElementById('btnProp'),
+    btnTermo = document.getElementById('btnTermo');
+
+  let deleteTargetId = null;
+
+  function closeModal() {
+    document.getElementById('modalAuth').style.display = 'none';
+    document.getElementById('authObj_pass').value = '';
+  }
+
+  function confirmDelete() {
+    const u = document.getElementById('authObj_user').value;
+    const p = document.getElementById('authObj_pass').value;
+
+    if (!u || !p) {
+      alert('Preencha usuário e senha.');
+      return;
+    }
+
+    fetch(`${SCRIPT_ROOT}/vendas/excluir/${deleteTargetId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': "{{ csrf_token() }}"
+      },
+      body: JSON.stringify({ usuario: u, senha: p })
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          location.reload();
+        } else {
+          alert(res.error || 'Erro ao excluir.');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Erro de conexão.');
+      });
+  }
+
+  if (form) {
+    form.addEventListener('change', () => {
+      const sel = form.querySelector('input[name="venda_id"]:checked'),
+        ok = !!sel;
+      btnEdi.disabled = btnDel.disabled = btnTra.disabled = btnProp.disabled = btnTermo.disabled = !ok;
+      if (ok) {
+        const id = sel.value;
+        btnEdi.onclick = () => location.href = `${SCRIPT_ROOT}/vendas/editar/${id}`;
+        btnTra.onclick = () => location.href = `${SCRIPT_ROOT}/transferencias/nova/${id}`;
+        btnProp.onclick = () => window.open(`${SCRIPT_ROOT}/vendas/${id}/proposta`, '_blank');
+        btnTermo.onclick = () => window.open(`${SCRIPT_ROOT}/vendas/${id}/termo`, '_blank');
+        btnDel.onclick = () => {
+          deleteTargetId = id;
+          document.getElementById('modalAuth').style.display = 'flex';
+          document.getElementById('authObj_user').value = "{{ current_user.usuario }}";
+          document.getElementById('authObj_pass').focus();
+        };
+
+        if (btnTra.disabled) {
+          btnTra.classList.replace('btn-primary', 'btn-secondary');
+        }
+      }
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

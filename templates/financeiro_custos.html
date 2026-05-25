@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas {{ mes }}/{{ ano }} – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 0 auto;">
+  <h1 class="text-center">Despesas Fixas - {{ mes }}/{{ ano }}</h1>
+
+  <div class="card">
+    <form method="POST" action="{{ url_for('financeiro.financeiro_gravar_custos') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="ano" value="{{ ano }}">
+      <input type="hidden" name="mes" value="{{ mes }}">
+
+      <p class="text-secondary text-center">Cadastre aluguel, luz, internet, salários fixos, etc.</p>
+
+      <div id="custosContainer">
+        {% for c in custos %}
+        <div class="flex" style="margin-bottom: 10px;">
+          <input type="text" name="custo_desc" value="{{ c.descricao }}" placeholder="Descrição"
+            style="margin-bottom: 0;">
+          <input type="number" step="0.01" name="custo_valor" value="{{ c.valor }}" placeholder="Valor"
+            style="width: 150px; margin-bottom: 0;">
+        </div>
+        {% endfor %}
+        <div class="flex" style="margin-bottom: 10px;">
+          <input type="text" name="custo_desc" placeholder="Nova Despesa" style="margin-bottom: 0;">
+          <input type="number" step="0.01" name="custo_valor" placeholder="0.00"
+            style="width: 150px; margin-bottom: 0;">
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-secondary" onclick="addCusto()" style="margin-bottom: 20px;">+ Adicionar
+        Linha</button>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Despesas</button>
+        <a href="{{ url_for('financeiro.financeiro') }}" class="btn btn-secondary">Voltar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function addCusto() {
+    const d = document.createElement('div');
+    d.className = 'flex';
+    d.style.marginBottom = '10px';
+    d.innerHTML = `<input type="text" name="custo_desc" placeholder="Descrição" style="margin-bottom:0;">
+                 <input type="number" step="0.01" name="custo_valor" placeholder="0.00" style="width:150px; margin-bottom:0;">`;
+    document.getElementById('custosContainer').appendChild(d);
+  }
+</script>
+{% endblock %}

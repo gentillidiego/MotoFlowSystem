@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if editar %}Editar Moto{% else %}Nova Moto{% endif %} – Confiance Motos
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 0 auto;">
+  <h1 style="text-align: center;">
+    {% if editar %}Editar Moto (ID: {{ moto.id }}){% else %}Cadastrar Moto{% endif %}
+  </h1>
+
+  {% if erro %}
+  <div
+    style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ef4444;">
+    {{ erro }}
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <label>Modelo</label>
+          <input type="text" name="modelo" value="{{ moto.modelo or '' }}" required>
+        </div>
+        <div>
+          <label>Cor</label>
+          <input type="text" name="cor" value="{{ moto.cor or '' }}">
+        </div>
+        <div>
+          <label>Ano</label>
+          <input type="text" name="ano" value="{{ moto.ano or '' }}">
+        </div>
+        <div>
+          <label>KM</label>
+          <input type="number" name="km" value="{{ moto.km or '' }}" placeholder="0">
+        </div>
+        <div>
+          <label>Origem</label>
+          <select name="origem">
+            <option value="Propria" {% if moto.origem=='Propria' %}selected{% endif %}>Própria</option>
+            <option value="Consignada" {% if moto.origem=='Consignada' %}selected{% endif %}>Consignada</option>
+            <option value="Fornecedor" {% if moto.origem=='Fornecedor' %}selected{% endif %}>Fornecedor</option>
+          </select>
+        </div>
+        <div>
+          <label>Chassi</label>
+          <input type="text" name="chassi" value="{{ moto.chassi or '' }}">
+        </div>
+        <div>
+          <label>Placa</label>
+          <input type="text" name="placa" value="{{ moto.placa or '' }}">
+        </div>
+        <div>
+          <label>Preço Aquisição (R$)</label>
+          <input type="number" step="0.01" name="preco_aquisicao" value="{{ moto.preco_aquisicao }}" placeholder="0.00">
+        </div>
+        <div>
+          <label>Preço Venda (R$)</label>
+          <input type="number" step="0.01" name="preco_venda" value="{{ moto.preco_venda }}" placeholder="0.00">
+        </div>
+        <div style="grid-column: span 2;">
+          <label>Link das Fotos (Google Drive)</label>
+          <input type="url" name="fotos_url" value="{{ moto.fotos_url or '' }}"
+            placeholder="https://drive.google.com/..." style="width: 100%;">
+          <p style="font-size: 0.8rem; color: #9ca3af; margin-top: 5px;">
+            Cole o link da <strong>pasta pública</strong> do Google Drive. 
+            Certifique-se que o acesso está como "Qualquer pessoa com o link".
+          </p>
+        </div>
+        <div style="grid-column: span 2;">
+          <label>Descrição (Ficha Técnica / Detalhes)</label>
+          <textarea name="descricao" rows="4" style="width: 100%; background: #222; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px;" placeholder="Ex: Único dono, revisada, acompanha manual e chave reserva...">{{ moto.descricao or '' }}</textarea>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 30px; border-bottom: 1px solid #333; padding-bottom: 10px;">Custos Adicionais</h3>
+      <div id="custosContainer">
+        {% for c in custos %}
+        <div class="flex" style="margin-bottom: 10px;">
+          <input type="text" name="custo_desc" value="{{ c.descricao }}" placeholder="Descrição"
+            style="margin-bottom: 0;">
+          <input type="number" step="0.01" name="custo_valor" value="{{ c.valor }}" placeholder="Valor"
+            style="width: 150px; margin-bottom: 0;">
+        </div>
+        {% endfor %}
+        <!-- Empty row for new -->
+        <div class="flex" style="margin-bottom: 10px;">
+          <input type="text" name="custo_desc" placeholder="Nova despesa (ex: Reparo)" style="margin-bottom: 0;">
+          <input type="number" step="0.01" name="custo_valor" placeholder="0.00"
+            style="width: 150px; margin-bottom: 0;">
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="addCusto()" style="margin-bottom: 20px;">+ Adicionar
+        Custo</button>
+
+      <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
+        <a href="{{ url_for('estoque.estoque') }}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function addCusto() {
+    const d = document.createElement('div');
+    d.className = 'flex';
+    d.style.marginBottom = '10px';
+    d.innerHTML = `<input type="text" name="custo_desc" placeholder="Descrição" style="margin-bottom:0;">
+                 <input type="number" step="0.01" name="custo_valor" placeholder="0.00" style="width:150px; margin-bottom:0;">`;
+    document.getElementById('custosContainer').appendChild(d);
+  }
+</script>
+{% endblock %}

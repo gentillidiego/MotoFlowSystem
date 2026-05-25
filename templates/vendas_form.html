@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit %}Editar Venda{% else %}Nova Venda{% endif %} – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; margin: 0 auto;">
+  <h1 class="text-center">{% if edit %}Editar Venda{% else %}Registrar Venda{% endif %}</h1>
+
+  <div class="card">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <h3>Dados do Cliente</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+          <label>Nome</label>
+          <input type="text" name="nome" value="{{ venda.nome if venda else (lead.nome if lead else '') }}" required>
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input type="text" name="telefone" value="{{ venda.telefone if venda else (lead.telefone if lead else '') }}">
+        </div>
+        <div>
+          <label>CPF</label>
+          <input type="text" name="cpf" value="{{ venda.cpf if venda else (lead.cpf if lead else '') }}">
+        </div>
+        <div>
+          <label>Data Nasc.</label>
+          <input type="date" name="data_nasc"
+            value="{{ venda.data_nasc if venda else (lead.data_nasc if lead else '') }}" style="color-scheme: dark;">
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" name="email" value="{{ venda.email if venda else '' }}">
+        </div>
+      </div>
+
+      <h3 style="margin-top: 20px;">Endereço</h3>
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+        <div>
+          <label>Logradouro</label>
+          <input type="text" name="endereco" value="{{ venda.endereco if venda else '' }}">
+        </div>
+        <div>
+          <label>CEP</label>
+          <input type="text" name="cep" value="{{ venda.cep if venda else '' }}">
+        </div>
+        <div>
+          <label>Bairro</label>
+          <input type="text" name="bairro" value="{{ venda.bairro if venda else '' }}">
+        </div>
+        <div>
+          <label>Cidade</label>
+          <input type="text" name="cidade" value="{{ venda.cidade if venda else 'Maceió' }}">
+        </div>
+      </div>
+
+      <h3 style="margin-top: 20px;">Venda</h3>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+        <div>
+          <label>Veículo Vendido *</label>
+          {% if edit %}
+          <!-- Visual display only to avoid changing sold product logic complexly, or allow? 
+                             The backend handles it. -->
+          <input type="hidden" name="produto_id" value="{{ venda.produto_id }}">
+          <input type="text" value="{{ venda.modelo }}" disabled style="opacity: 0.7;">
+          <small class="text-secondary">Para mudar o veículo, cancele a venda e faça outra.</small>
+          {% else %}
+          <select name="produto_id" required>
+            <option value="">-- Selecione a Moto --</option>
+            {% for m in motos %}
+            <option value="{{ m.id }}" {% if lead and lead.produto_id==m.id %}selected{% endif %}>{{ m.label }} — R$ {{
+              '%.2f'|format(m.preco_venda) }}</option>
+            {% endfor %}
+          </select>
+          {% endif %}
+        </div>
+        <div>
+          <label>Condição Pagamento</label>
+          <select name="condicao_pagamento">
+            <option value="">-- Selecione --</option>
+            <option value="A vista" {% if venda and venda.condicao_pagamento=='A vista' %}selected{% endif %}>A vista
+            </option>
+            <option value="Financiado Santander" {% if venda and venda.condicao_pagamento=='Financiado Santander'
+              %}selected{% endif %}>Financiado Santander</option>
+            <option value="Financiado BV" {% if venda and venda.condicao_pagamento=='Financiado BV' %}selected{% endif
+              %}>Financiado BV</option>
+            <option value="Financiado Pan" {% if venda and venda.condicao_pagamento=='Financiado Pan' %}selected{% endif
+              %}>Financiado Pan</option>
+            <option value="Financiado Omni" {% if venda and venda.condicao_pagamento=='Financiado Omni' %}selected{%
+              endif %}>Financiado Omni</option>
+            <option value="Cartão de Crédito" {% if venda and venda.condicao_pagamento=='Cartão de Crédito' %}selected{%
+              endif %}>Cartão de Crédito</option>
+            <option value="Promissória" {% if venda and venda.condicao_pagamento=='Promissória' %}selected{% endif %}>
+              Promissória</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Custos de Venda -->
+      <h3 style="margin-top: 20px; border-bottom: 1px solid #333;">Despesas da Venda (Comissão, Brindes...)</h3>
+      <div id="cvContainer">
+        {% for c in cv %}
+        <div class="flex" style="margin-bottom: 10px;">
+          <input type="text" name="cv_desc" value="{{ c.descricao }}" placeholder="Descrição" style="margin-bottom: 0;">
+          <input type="number" step="0.01" name="cv_valor" value="{{ c.valor }}" placeholder="Valor"
+            style="width: 150px; margin-bottom: 0;">
+        </div>
+        {% endfor %}
+        <div class="flex" style="margin-bottom: 10px;">
+          <input type="text" name="cv_desc" placeholder="Nova despesa" style="margin-bottom: 0;">
+          <input type="number" step="0.01" name="cv_valor" placeholder="0.00" style="width: 150px; margin-bottom: 0;">
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="addCV()" style="margin-bottom: 20px;">+
+        Adicionar</button>
+
+      <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Finalizar Venda</button>
+        <a href="{{ url_for('vendas.vendas_home') }}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function addCV() {
+    const d = document.createElement('div');
+    d.className = 'flex';
+    d.style.marginBottom = '10px';
+    d.innerHTML = `<input type="text" name="cv_desc" placeholder="Descrição" style="margin-bottom:0;">
+                 <input type="number" step="0.01" name="cv_valor" placeholder="0.00" style="width:150px; margin-bottom:0;">`;
+    document.getElementById('cvContainer').appendChild(d);
+  }
+</script>
+{% endblock %}

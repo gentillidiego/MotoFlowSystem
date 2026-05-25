@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  motoflow:
+    build: .
+    container_name: motoflow-docker
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./estoque.db:/app/estoque.db
+      - ./static/images:/app/static/images
+      - /home/diego/moto-flow-config:/home/diego/moto-flow-config:ro
+    env_file:
+      - .env

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Transferência – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; margin: 0 auto;">
+    <div class="flex-between mb-4">
+        <h1>Transferência #{{ t.id }}</h1>
+        <a href="{{ url_for('transferencias.transferencias_lista') }}" class="btn btn-secondary">Voltar</a>
+    </div>
+
+    <div class="card mb-4">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h3 style="margin-top:0;">Veículo</h3>
+                <div style="font-size: 1.2rem;">{{ t.modelo }}</div>
+                <div class="text-secondary">{{ t.placa or 'Sem Placa' }}</div>
+                <div class="text-secondary" style="font-size: 0.9rem;">Chassi: {{ t.chassi or '—' }}</div>
+            </div>
+            <div>
+                <h3 style="margin-top:0;">Cliente</h3>
+                <div style="font-size: 1.2rem;">{{ t.cliente }}</div>
+                <div class="text-secondary">Responsável: <strong>{{ t.responsavel }}</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Status e Progresso</h3>
+
+        <!-- Stepper Visualization -->
+        {% set steps = [
+        'Indicação Realizada',
+        'Assinatura Comprador',
+        'Assinatura Vendedor',
+        'ATPV-e Emitido',
+        'Taxas e Vistoria',
+        'Concluída'
+        ] %}
+        {% set current_idx = steps.index(t.status) if t.status in steps else 0 %}
+
+        <div class="stepper" style="margin: 30px 0;">
+            {% set colors = ['#EF4444', '#EC4899', '#F59E0B', '#1E40AF', '#60A5FA', '#10B981'] %}
+            {% for s in steps %}
+            {% set step_color = colors[loop.index0] %}
+            <div class="step {% if loop.index0 <= current_idx %}completed{% elif loop.index0 == current_idx + 1 %}active{% endif %}"
+                title="{{ s }}" style="position: relative; --step-color: {{ step_color }};">
+                <!-- Tooltip style label -->
+                <div
+                    style="position: absolute; top: 120%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 0.75rem; color: #ccc;">
+                    {{ s }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="background: #1a1a1a; padding: 20px; border-radius: 8px; margin-top: 50px;">
+            <form action="{{ url_for('transferencias.transferencias_editar', tid=t.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <label>Atualizar Status</label>
+                <select name="status"
+                    style="width: 100%; padding: 10px; margin-bottom: 15px; background: #333; color: #fff; border: 1px solid #555;">
+                    {% for s in steps %}
+                    <option value="{{ s }}" {% if t.status==s %}selected{% endif %}>{{ loop.index }}. {{ s }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Observações</label>
+                <textarea name="observacoes" rows="4" placeholder="Escreva observações sobre o andamento..."
+                    style="width: 100%; background: #333; color: #fff; border: 1px solid #555;">{{ t.observacoes or '' }}</textarea>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Salvar
+                    Atualização</button>
+            </form>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <form action="{{ url_for('transferencias.transferencias_excluir', tid=t.id) }}" method="POST"
+                onsubmit="return confirm('Tem certeza que deseja excluir esta transferência?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-danger btn-sm">Excluir Processo</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

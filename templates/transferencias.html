@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Transferências – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+  <h1>Transferências</h1>
+  <!-- Future: Add Filters here -->
+</div>
+
+{% if not transferencias %}
+<div class="card text-center" style="padding: 40px;">
+  <h3 style="color: var(--text-secondary);">Nenhum processo em andamento</h3>
+  <p>Inicie uma transferência através da tela de <a href="{{ url_for('vendas.vendas_home') }}"
+      style="color: var(--primary-color);">Vendas</a>.</p>
+</div>
+{% else %}
+
+<div class="card table-responsive">
+  <table>
+    <thead>
+      <tr>
+        <th>Veículo</th>
+        <th>Cliente</th>
+        <th>Progresso</th>
+        <th>Status</th>
+        <th>Tempo</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transferencias %}
+      {% set steps = [
+      'Indicação Realizada',
+      'Assinatura Comprador',
+      'Assinatura Vendedor',
+      'ATPV-e Emitido',
+      'Taxas e Vistoria',
+      'Concluída'
+      ] %}
+      {% set total = steps|length %}
+
+      {# Clean status string just in case #}
+      {% set current_status = t.status | trim %}
+      {% set idx = 0 %}
+      {% if current_status in steps %}
+      {% set idx = steps.index(current_status) %}
+      {% endif %}
+
+      {% set pct = ((idx + 1) / total) * 100 %}
+
+      {% set colors = ['#EF4444', '#EC4899', '#F59E0B', '#1E40AF', '#60A5FA', '#10B981'] %}
+      {% set badge_classes = ['badge-red', 'badge-pink', 'badge-yellow', 'badge-navy', 'badge-lightblue', 'badge-green']
+      %}
+
+      {% set color = colors[idx] %}
+      {% set status_cls = badge_classes[idx] %}
+
+      <tr onclick="location.href='{{ url_for('transferencias.transferencias_detalhes', tid=t.id) }}'"
+        style="cursor: pointer;">
+        <td>
+          <div style="font-weight: bold;">{{ t.modelo }}</div>
+          <small class="text-secondary">{{ t.placa or t.chassi }}</small>
+        </td>
+        <td>{{ t.cliente }}</td>
+        <td style="vertical-align: middle; padding-right: 20px;">
+          <!-- Progress Bar (Simple) -->
+          <div style="background: #333; height: 6px; border-radius: 3px; width: 100%; overflow: hidden;">
+            <div style="width: {{ pct }}%; background: {{ color }}; height: 100%;"></div>
+          </div>
+        </td>
+        <td><span class="badge {{ status_cls }}">{{ t.status }}</span></td>
+        <td>
+          {{ t.dias }} dias
+        </td>
+        <td style="text-align: right;">
+          <span style="color: #666;">&rsaquo;</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex-between mt-4 mb-4" style="background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #444;">
+  <div class="text-secondary">Página <strong>{{ page }}</strong> de {{ total_pages }} ({{ total }} processos)</div>
+  <div style="display: flex; gap: 10px;">
+    {% if page > 1 %}
+      <a href="{{ url_for('transferencias.transferencias_lista', page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+    {% else %}
+      <button class="btn btn-secondary" disabled>&laquo; Anterior</button>
+    {% endif %}
+
+    {% if page < total_pages %}
+      <a href="{{ url_for('transferencias.transferencias_lista', page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+    {% else %}
+      <button class="btn btn-secondary" disabled>Próximo &raquo;</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

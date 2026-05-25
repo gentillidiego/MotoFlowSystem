@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Financeiro – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+  <h1>Financeiro</h1>
+  <!-- Period Selector could go here -->
+</div>
+
+<!-- Tabs / Period Navigation -->
+<!-- Year Selector -->
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <select id="selAno" style="width: auto; margin-bottom: 0;">
+    {% for a in anos %}
+    <option value="{{ a }}" {% if a==ano_atual %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- Month Horizontal List -->
+<div style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 5px;" id="mesesContainer">
+  {% for m in range(1, 13) %}
+  <button class="btn btn-secondary btn-mes" data-mes="{{ m }}" style="min-width: 60px;">
+    {% set meses = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'] %}
+    {{ meses[m] }}
+  </button>
+  {% endfor %}
+</div>
+
+<!-- DATA CONTAINER -->
+<div id="loading" style="display:none; text-align:center; padding: 20px;">Carregando...</div>
+<div id="finContent" style="display:none;">
+
+  <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+    <div class="card text-center" style="flex: 1; min-width: 150px;">
+      <h3 style="margin: 0; font-size: 0.9rem; color: #aaa;">Total Vendas</h3>
+      <div id="dispTotalVendas" style="font-size: 1.5rem; font-weight: bold;">R$ 0,00</div>
+    </div>
+    <div class="card text-center" style="flex: 1; min-width: 150px;">
+      <h3 style="margin: 0; font-size: 0.9rem; color: #aaa;">Lucro Bruto</h3>
+      <div id="dispLucroBruto" style="font-size: 1.5rem; font-weight: bold; color: var(--success-color);">R$ 0,00</div>
+    </div>
+    <div class="card text-center" style="flex: 1; min-width: 150px;">
+      <h3 style="margin: 0; font-size: 0.9rem; color: #aaa;">Comissões</h3>
+      <div id="dispComissao" style="font-size: 1.5rem; font-weight: bold; color: var(--warning-color);">R$ 0,00</div>
+    </div>
+    <div class="card text-center" style="flex: 1; min-width: 150px; cursor: pointer;"
+      onclick="document.getElementById('btnCustos').click();">
+      <h3 style="margin: 0; font-size: 0.9rem; color: #aaa;">Despesas Fixas</h3>
+      <div id="dispDespesas" style="font-size: 1.5rem; font-weight: bold; color: var(--danger-color);">R$ 0,00</div>
+    </div>
+    <div class="card text-center"
+      style="flex: 1; min-width: 150px; background: #222; border: 1px solid var(--primary-color);">
+      <h3 style="margin: 0; font-size: 0.9rem; color: #aaa;">Lucro Líquido</h3>
+      <div id="dispLucroLiq" style="font-size: 1.5rem; font-weight: bold; color: #fff;">R$ 0,00</div>
+    </div>
+  </div>
+
+  <!-- Actions: Edit Costs -->
+  <div style="text-align: right; margin-bottom: 15px;">
+    <a id="btnCustos" href="#" class="btn btn-secondary">Gerenciar Despesas Mensais</a>
+  </div>
+
+  <!-- Table -->
+  <div class="card table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Venda</th>
+          <th>Veículo</th>
+          <th>Valor Venda</th>
+          <th>Custo Total</th>
+          <th>Lucro</th>
+          <th>Comissão</th>
+        </tr>
+      </thead>
+      <tbody id="listaVendas"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  const selAno = document.getElementById('selAno');
+  const btnsMes = document.querySelectorAll('.btn-mes');
+  const content = document.getElementById('finContent');
+  const loading = document.getElementById('loading');
+
+  let curAno = selAno.value;
+  let curMes = {{ mes_atual }};
+
+  function fmtMoney(v) { return parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+  function loadData() {
+    content.style.display = 'none';
+    loading.style.display = 'block';
+
+    // Update styling
+    btnsMes.forEach(b => {
+      if (parseInt(b.dataset.mes) === curMes) b.classList.replace('btn-secondary', 'btn-primary');
+      else b.classList.replace('btn-primary', 'btn-secondary');
+    });
+
+    document.getElementById('btnCustos').href = `${SCRIPT_ROOT}/financeiro/custos/${curAno}/${curMes}`;
+
+    fetch(`${SCRIPT_ROOT}/financeiro/${curAno}/${curMes}`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('dispTotalVendas').innerText = fmtMoney(d.total_vendas);
+        document.getElementById('dispLucroBruto').innerText = fmtMoney(d.lucro_bruto);
+        document.getElementById('dispComissao').innerText = fmtMoney(d.comissao);
+        document.getElementById('dispDespesas').innerText = fmtMoney(d.custos_mensais);
+        document.getElementById('dispLucroLiq').innerText = fmtMoney(d.lucro_liquido);
+
+        const tbody = document.getElementById('listaVendas');
+        tbody.innerHTML = '';
+
+        if (d.detalhes_vendas.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhuma venda neste mês.</td></tr>';
+        } else {
+          d.detalhes_vendas.forEach(v => {
+            const lucro = v.preco_venda - v.custo_total;
+            const comissao = 0; // The original comissao logic was backend side but calculated per sale, let's trust the backend total or re-calculate? 
+            // Actually the backend returns 'comissao' as a total. But 'detalhes_vendas' doesn't have it per item explicitly in the JSON response structure I saw earlier unless I modify app.py.
+            // Let's look at app.py: line 125 computes total comissao. The 'detalhes' list (line 138) appends {**dict(v), "custo_total": ct}. Just that.
+            // So I cannot easily show correct comissao per row without logic duplication or backend change.
+            // For now, I'll calculate it roughly 'max(0.10 * lucro, 100.0)' as seen in app.py
+            const com = Math.max((v.preco_venda - v.custo_total) * 0.10, 100.0);
+
+            tbody.innerHTML += `
+                        <tr>
+                            <td>${v.data_venda.split('-').reverse().join('/')}</td>
+                            <td><a href="${SCRIPT_ROOT}/vendas/${v.id}/custos" style="color:var(--primary-color); text-decoration:none;">${v.nome}</a></td>
+                            <td>${v.modelo}</td>
+                            <td>${fmtMoney(v.preco_venda)}</td>
+                            <td>${fmtMoney(v.custo_total)}</td>
+                            <td style="color:${lucro > 0 ? 'var(--success-color)' : 'var(--danger-color)'}">${fmtMoney(lucro)}</td>
+                            <td>${fmtMoney(com)}</td>
+                        </tr>`;
+          });
+        }
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+      })
+      .catch(e => {
+        loading.innerHTML = 'Erro ao carregar dados.';
+        console.error(e);
+      });
+  }
+
+  selAno.addEventListener('change', (e) => {
+    curAno = e.target.value;
+    loadData();
+  });
+
+  btnsMes.forEach(btn => {
+    btn.addEventListener('click', () => {
+      curMes = parseInt(btn.dataset.mes);
+      loadData();
+    });
+  });
+
+  // Init
+  loadData();
+</script>
+{% endblock %}

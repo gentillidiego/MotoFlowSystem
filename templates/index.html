@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center mb-4">
+  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Moto Flow"
+    style="max-width: 200px; height: auto;">
+  <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 10px;">Acelere o giro. Simplifique o processo.
+  </p>
+</div>
+
+<h1>Painel de Controle</h1>
+
+<div class="stepper"
+  style="gap: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 30px;">
+  <!-- Stat Card 1 -->
+  <div class="card text-center">
+    <h2>Em Estoque</h2>
+    <div style="font-size: 2.5rem; font-weight: bold; color: var(--primary-color);">{{ total_motos }}</div>
+    <small class="text-secondary">Veículos disponíveis</small>
+  </div>
+
+  <!-- Stat Card 2 -->
+  <div class="card text-center">
+    <h2>Vendas (Mês)</h2>
+    <div style="font-size: 2.5rem; font-weight: bold; color: var(--success-color);">{{ vendas_mes }}</div>
+    <small class="text-secondary">Negócios fechados</small>
+  </div>
+
+  <!-- Stat Card 3 -->
+  <div class="card text-center" onclick="location.href='{{ url_for('transferencias.transferencias_lista') }}'"
+    style="cursor: pointer;">
+    <h2>Transferências</h2>
+    <div style="font-size: 2.5rem; font-weight: bold; color: var(--warning-color);">{{ transf_pend }}</div>
+    <small class="text-secondary">Processos em andamento</small>
+  </div>
+</div>
+
+{% if alertas %}
+<h2 style="color: var(--danger-color); margin-bottom: 15px;">⚠️ Atenção Necessária</h2>
+<div class="card">
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Veículo</th>
+          <th>Cliente</th>
+          <th>Status Atual</th>
+          <th>Última Atualização</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in alertas %}
+        <tr>
+          <td>{{ a.modelo }}<br><small>{{ a.placa }}</small></td>
+          <td>{{ a.cliente }}</td>
+          <td><span class="badge badge-warning">{{ a.status }}</span></td>
+          <td>{{ a.data_atualizacao }}</td>
+          <td><a href="{{ url_for('transferencias.transferencias_lista') }}" class="btn btn-secondary"
+              style="padding: 5px 10px; font-size: 0.8rem;">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<h2>Acesso Rápido</h2>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+  <a href="{{ url_for('vendas.vendas_novo') }}" class="btn btn-primary">+ Nova Venda</a>
+  <a href="{{ url_for('estoque.estoque_form') }}" class="btn btn-secondary">+ Novo Veículo</a>
+  <a href="{{ url_for('vendas.leads_form') }}" class="btn btn-secondary">+ Novo Lead</a>
+</div>
+
+{% endblock %}

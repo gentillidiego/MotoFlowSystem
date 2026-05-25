@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Usuário – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <h1>Novo Usuário</h1>
+
+    <div class="card">
+        <div class="card">
+            <!-- Manual error block removed, handled by base.html -->
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <label>Nome de Usuário</label>
+                <input type="text" name="usuario" required
+                    style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #444; background: #333; color: white;">
+
+                <label>Senha</label>
+                <input type="password" name="senha" required
+                    style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #444; background: #333; color: white;">
+
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" name="is_admin" id="is_admin" style="transform: scale(1.2);">
+                    <label for="is_admin" style="margin: 0; user-select: none; cursor: pointer;">Este usuário é
+                        Administrador?</label>
+                </div>
+
+                <div class="flex-between">
+                    <a href="{{ url_for('auth.usuarios_lista') }}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Criar Usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endblock %}

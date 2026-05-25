@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Login – Confiance Motos{% endblock %}
+
+{% block content %}
+<div
+    style="max-width: 400px; margin: 100px auto; padding: 30px; background: #222; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+    <h2 style="text-align: center; margin-bottom: 30px; color: var(--text-primary);">Acesso ao Sistema</h2>
+
+    <!-- Flash messages handled in base.html -->
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <label style="display: block; margin-bottom: 8px;">Usuário</label>
+        <input type="text" name="usuario"
+            style="width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #444; background: #333; color: white;">
+
+        <label style="display: block; margin-bottom: 8px;">Senha</label>
+        <input type="password" name="senha"
+            style="width: 100%; padding: 10px; margin-bottom: 30px; border-radius: 6px; border: 1px solid #444; background: #333; color: white;">
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Entrar</button>
+    </form>
+</div>
+{% endblock %}

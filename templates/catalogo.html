@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Virtual - MotoFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #EF4444;
+            --red-dim: rgba(239,68,68,0.12);
+            --red-glow: rgba(239,68,68,0.08);
+            --card: #111111;
+            --gray: #9CA3AF;
+            --border: #1a1a1a;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #000;
+            color: #f3f4f6;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── HEADER ── */
+        .site-header {
+            background: #000;
+            padding: 52px 20px 44px;
+            text-align: center;
+            position: relative;
+        }
+
+        .site-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            height: 1px; width: 100%;
+            background: linear-gradient(90deg, transparent, #1a1a1a, transparent);
+        }
+
+        .logo {
+            max-width: 300px; height: auto;
+            animation: fadeDown 0.7s ease both;
+        }
+
+        .header-accent {
+            width: 0; height: 2px;
+            background: var(--red);
+            margin: 16px auto 0;
+            border-radius: 2px;
+            animation: lineGrow 0.6s ease 0.4s forwards;
+        }
+
+        @keyframes lineGrow { to { width: 72px; } }
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-meta {
+            margin-top: 18px;
+            animation: fadeUp 0.6s ease 0.2s both;
+        }
+
+        .header-address {
+            font-style: normal;
+            color: var(--gray);
+            font-size: 0.78rem;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+        }
+
+        .social-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .social-btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 7px 18px;
+            border-radius: 100px;
+            text-decoration: none;
+            font-size: 0.8rem; font-weight: 600;
+            border: 1px solid #252525;
+            background: #080808; color: #fff;
+            transition: border-color 0.25s, color 0.25s, transform 0.2s;
+        }
+        .social-btn:hover { transform: translateY(-2px); }
+        .btn-ig:hover  { border-color: #E1306C; color: #E1306C; }
+        .btn-wa:hover  { border-color: #25d366;  color: #25d366; }
+
+        /* ── MAIN ── */
+        .main { padding: 56px 0 80px; }
+
+        .container {
+            width: 92%; max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* ── SECTION TITLE ── */
+        .section-top {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 14px;
+            margin-bottom: 40px;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-top h1 {
+            font-size: clamp(1.9rem, 4vw, 2.6rem);
+            font-weight: 800; letter-spacing: -0.5px;
+        }
+        .section-top h1 em { font-style: normal; color: var(--red); }
+
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 7px 16px;
+            background: var(--red-dim);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 100px;
+            color: var(--red);
+            font-size: 0.82rem; font-weight: 600;
+        }
+        .live-dot {
+            width: 7px; height: 7px;
+            background: var(--red); border-radius: 50%;
+            animation: blink 1.6s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.25; }
+        }
+
+        /* ── GRID ── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+            gap: 22px;
+        }
+
+        /* ── CARD ── */
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            position: relative;
+            cursor: pointer;
+            /* entry state */
+            opacity: 0;
+            transform: translateY(38px);
+            transition: opacity 0.55s ease, transform 0.55s ease,
+                        border-color 0.28s, box-shadow 0.28s;
+        }
+
+        .card.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        .card.ready:hover {
+            transform: translateY(-7px);
+            border-color: rgba(239,68,68,0.35);
+            box-shadow: 0 0 32px var(--red-glow), 0 22px 44px rgba(0,0,0,0.55);
+        }
+
+        /* ── BADGE ── */
+        .badge {
+            position: absolute; top: 13px; left: 13px; z-index: 5;
+            padding: 3px 11px;
+            border-radius: 100px;
+            font-size: 0.68rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+            background: var(--red); color: #fff;
+        }
+
+        /* ── IMAGE ── */
+        .card-img {
+            position: relative; overflow: hidden; height: 210px;
+        }
+
+        .shimmer {
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, #111 25%, #1c1c1c 50%, #111 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .foto {
+            width: 100%; height: 100%;
+            object-fit: cover; display: block;
+            opacity: 0;
+            transition: opacity 0.4s, transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+        }
+        .foto.loaded { opacity: 1; }
+        .card.ready:hover .foto { transform: scale(1.06); }
+
+        .no-photo {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #080808; gap: 10px;
+            color: #222;
+        }
+        .no-photo span {
+            font-size: 0.72rem; letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        /* ── CARD BODY ── */
+        .card-body {
+            padding: 20px 22px 22px;
+            flex-grow: 1; display: flex; flex-direction: column;
+        }
+
+        .card-body h2 {
+            font-size: 1.05rem; font-weight: 600;
+            color: #fff; margin-bottom: 12px; line-height: 1.3;
+        }
+
+        .chips {
+            display: flex; flex-wrap: wrap; gap: 7px;
+            margin-bottom: 16px;
+        }
+        .chip {
+            padding: 3px 11px;
+            background: #181818; border: 1px solid #242424;
+            border-radius: 100px;
+            font-size: 0.75rem; color: var(--gray); font-weight: 500;
+        }
+
+        .price {
+            font-size: 1.55rem; font-weight: 800;
+            color: var(--red); letter-spacing: -0.5px;
+            margin-top: auto; margin-bottom: 16px;
+        }
+
+        .btn-ver {
+            display: block; padding: 11px;
+            background: transparent; color: #fff;
+            text-align: center; text-decoration: none;
+            border-radius: 9px; font-weight: 600;
+            font-size: 0.85rem; letter-spacing: 0.5px;
+            border: 1px solid #282828;
+            transition: background 0.22s, border-color 0.22s, color 0.22s;
+        }
+        .card.ready:hover .btn-ver {
+            background: var(--red); border-color: var(--red); color: #fff;
+        }
+
+        /* Stretched link */
+        .stretched::after {
+            position: absolute; inset: 0; z-index: 10; content: '';
+        }
+
+        /* ── FOOTER CTA ── */
+        .footer-cta {
+            margin-top: 80px;
+            padding: 48px 40px;
+            background: #080808;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .footer-cta::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--red), transparent);
+        }
+        .footer-cta h3 { font-size: 1.55rem; font-weight: 700; margin-bottom: 8px; }
+        .footer-cta p  { color: var(--gray); margin-bottom: 26px; }
+
+        .btn-footer {
+            display: inline-block;
+            padding: 13px 30px;
+            background: var(--red); color: #fff;
+            text-decoration: none; border-radius: 100px;
+            font-weight: 700; font-size: 0.9rem; letter-spacing: 0.5px;
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-footer:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(239,68,68,0.28);
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty { text-align: center; padding: 90px 0; color: var(--gray); }
+        .empty svg { margin-bottom: 18px; opacity: 0.18; }
+
+        /* ── FLOAT WA ── */
+        .wa-float {
+            position: fixed; bottom: 26px; right: 26px;
+            width: 60px; height: 60px;
+            background: #25d366; color: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none; z-index: 200;
+            box-shadow: 0 4px 18px rgba(37,211,102,0.35);
+            transition: transform 0.3s;
+        }
+        .wa-float::before {
+            content: '';
+            position: absolute; inset: 0; border-radius: 50%;
+            background: #25d366; opacity: 0.55;
+            animation: pulse 2.2s ease-out infinite; z-index: -1;
+        }
+        @keyframes pulse {
+            0%   { transform: scale(1); opacity: 0.55; }
+            100% { transform: scale(1.65); opacity: 0; }
+        }
+        .wa-float:hover { transform: scale(1.1); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 620px) {
+            .site-header { padding: 42px 20px 36px; }
+            .section-top { flex-direction: column; align-items: flex-start; }
+            .footer-cta  { padding: 36px 22px; }
+        }
+    </style>
+
+    <!-- Meta Pixel -->
+    <script>
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init','850559744681183');fbq('track','PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=850559744681183&ev=PageView&noscript=1"/></noscript>
+</head>
+<body>
+
+<header class="site-header">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MotoFlow" class="logo">
+    <div class="header-accent"></div>
+    <div class="header-meta">
+        <address class="header-address">Av. Walter Ananias 1206, Jaraguá &bull; Maceió</address>
+        <div class="social-row">
+            <a href="https://www.instagram.com/motoflow.maceio/" target="_blank" class="social-btn btn-ig">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.266.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.848 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.44-.645 1.44-1.44s-.645-1.44-1.44-1.44z"/></svg>
+                @motoflow.maceio
+            </a>
+            <a href="https://wa.me/5582988622332" target="_blank" class="social-btn btn-wa">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.912-.001-3.793-.457-5.47-1.32l-6.527 1.728zm6.576-5.058c1.511.895 3.018 1.488 4.754 1.489 5.4 0 9.792-4.393 9.794-9.791.001-2.614-1.017-5.071-2.868-6.922-1.851-1.852-4.309-2.87-6.925-2.87-5.4 0-9.792 4.392-9.794 9.791-.001 1.933.53 3.491 1.547 5.056l-.999 3.649 3.735-.973zm8.991-6.425c-.274-.137-1.623-.801-1.873-.892s-.433-.137-.617.137c-.184.274-.712.892-.871 1.075s-.318.206-.593.069c-.274-.137-1.16-.427-2.158-1.317-.777-.692-1.303-1.547-1.455-1.82s-.017-.422.12-.558c.124-.122.274-.32.411-.48.138-.16.183-.274.274-.457s.046-.343-.023-.48c-.069-.137-.617-1.486-.844-2.035-.221-.532-.444-.459-.617-.469-.159-.01-.343-.012-.527-.012s-.485.069-.738.343c-.252.274-.961.938-.961 2.289s.984 2.653 1.121 2.836c.137.184 1.938 2.96 4.695 4.151.656.284 1.168.453 1.569.58.66.21 1.261.18 1.735.109.529-.079 1.623-.663 1.851-1.303s.229-1.189.16-1.303c-.069-.115-.251-.207-.526-.344z"/></svg>
+                (82) 98862-2332
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+
+        <div class="section-top">
+            <h1>Nosso <em>Estoque</em></h1>
+            {% if motos %}
+            <div class="live-badge">
+                <span class="live-dot"></span>
+                {{ motos|length }} disponíveis
+            </div>
+            {% endif %}
+        </div>
+
+        {% if motos %}
+        <div class="grid">
+            {% for moto in motos %}
+            <article class="card">
+                {% if moto.origem == 'Propria' %}
+                <div class="badge">Destaque</div>
+                {% endif %}
+
+                <div class="card-img">
+                    {% if moto.fotos_url %}
+                    <div class="shimmer" id="sh{{ moto.id }}"></div>
+                    <img
+                        src="{{ moto.fotos_url.split(',')[0] }}"
+                        alt="{{ moto.modelo }}"
+                        class="foto"
+                        loading="lazy"
+                        onload="this.classList.add('loaded');var s=document.getElementById('sh{{ moto.id }}');if(s)s.remove();"
+                    >
+                    {% else %}
+                    <div class="no-photo">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span>Foto em breve</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    <h2>{{ moto.modelo }}</h2>
+                    <div class="chips">
+                        <span class="chip">{{ moto.ano or 'N/A' }}</span>
+                        <span class="chip">{{ "{:,}".format(moto.km | int).replace(',', '.') }} KM</span>
+                        {% if moto.cor %}<span class="chip">{{ moto.cor }}</span>{% endif %}
+                    </div>
+                    <div class="price">
+                        R$ {{ "{:,.2f}".format(moto.preco_venda or 0).replace(',','v').replace('.',',').replace('v','.') }}
+                    </div>
+                    <a href="{{ url_for('catalogo.catalogo_detalhes', id=moto.id) }}"
+                       class="btn-ver stretched">Ver detalhes →</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="empty">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <p>Nenhuma moto disponível no momento.</p>
+        </div>
+        {% endif %}
+
+        <div class="footer-cta">
+            <h3>Financie Sua Conquista</h3>
+            <p>Parcelas que cabem no seu bolso com as menores taxas.</p>
+            <a href="https://wa.me/5582988622332" target="_blank" class="btn-footer">Consultar Disponibilidade</a>
+        </div>
+
+    </div>
+</main>
+
+<a href="https://wa.me/5582988622332" class="wa-float" target="_blank" aria-label="WhatsApp">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.912-.001-3.793-.457-5.47-1.32l-6.527 1.728zm6.576-5.058c1.511.895 3.018 1.488 4.754 1.489 5.4 0 9.792-4.393 9.794-9.791.001-2.614-1.017-5.071-2.868-6.922-1.851-1.852-4.309-2.87-6.925-2.87-5.4 0-9.792 4.392-9.794 9.791-.001 1.933.53 3.491 1.547 5.056l-.999 3.649 3.735-.973zm8.991-6.425c-.274-.137-1.623-.801-1.873-.892s-.433-.137-.617.137c-.184.274-.712.892-.871 1.075s-.318.206-.593.069c-.274-.137-1.16-.427-2.158-1.317-.777-.692-1.303-1.547-1.455-1.82s-.017-.422.12-.558c.124-.122.274-.32.411-.48.138-.16.183-.274.274-.457s.046-.343-.023-.48c-.069-.137-.617-1.486-.844-2.035-.221-.532-.444-.459-.617-.469-.159-.01-.343-.012-.527-.012s-.485.069-.738.343c-.252.274-.961.938-.961 2.289s.984 2.653 1.121 2.836c.137.184 1.938 2.96 4.695 4.151.656.284 1.168.453 1.569.58.66.21 1.261.18 1.735.109.529-.079 1.623-.663 1.851-1.303s.229-1.189.16-1.303c-.069-.115-.251-.207-.526-.344z"/></svg>
+</a>
+
+<script>
+    const cards = document.querySelectorAll('.card');
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            const visible = entries
+                .filter(e => e.isIntersecting)
+                .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+            visible.forEach((entry, i) => {
+                const card = entry.target;
+                const delay = i * 0.07;
+                card.style.transitionDelay = `${delay}s`;
+                card.classList.add('visible');
+
+                // After entry finishes, reset delay so hover is instant
+                setTimeout(() => {
+                    card.style.transitionDelay = '0s';
+                    card.classList.add('ready');
+                }, (delay + 0.6) * 1000);
+
+                observer.unobserve(card);
+            });
+        }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
+
+        cards.forEach(c => observer.observe(c));
+    } else {
+        cards.forEach(c => { c.classList.add('visible', 'ready'); });
+    }
+</script>
+
+</body>
+</html>

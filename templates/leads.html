@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Leads – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+  <h1>Leads</h1>
+  <a href="{{ url_for('vendas.leads_form') }}" class="btn btn-primary">+ Novo Lead</a>
+</div>
+
+{% if not leads %}
+<p class="text-center text-secondary">Nenhum lead cadastrado.</p>
+{% else %}
+<div class="card table-responsive">
+  <form id="formLeads">
+    <table>
+      <thead>
+        <tr>
+          <th width="40"></th>
+          <th>Data</th>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>CPF</th>
+          <th>Nascimento</th>
+          <th>Interesse</th>
+          <th>Temp.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in leads %}
+        <tr onclick="document.getElementById('radio_{{ l.id }}').click();" style="cursor: pointer;">
+          <td><input type="radio" name="lead_id" id="radio_{{ l.id }}" value="{{ l.id }}"></td>
+          <td>{{ l.created_at[:10] }}</td>
+          <td>{{ l.nome }}</td>
+          <td>{{ l.telefone or '—' }}</td>
+          <td>{{ l.cpf or '—' }}</td>
+          <td>{{ l.data_nasc or '—' }}</td>
+          <td>{{ l.modelo or '—' }}</td>
+          <td>
+            {% if l.temperatura == 'Quente' %}
+            <span class="badge badge-success">Quente</span>
+            {% elif l.temperatura == 'Morno' %}
+            <span class="badge badge-warning">Morno</span>
+            {% else %}
+            <span class="badge" style="background:#555;color:#fff;">Frio</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex-between mt-4 mb-4" style="background: #222; padding: 10px 20px; border-radius: 8px; border: 1px solid #444;">
+  <div class="text-secondary">Página <strong>{{ page }}</strong> de {{ total_pages }} ({{ total }} leads)</div>
+  <div style="display: flex; gap: 10px;">
+    {% if page > 1 %}
+      <a href="{{ url_for('vendas.leads', page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+    {% else %}
+      <button class="btn btn-secondary" disabled>&laquo; Anterior</button>
+    {% endif %}
+
+    {% if page < total_pages %}
+      <a href="{{ url_for('vendas.leads', page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+    {% else %}
+      <button class="btn btn-secondary" disabled>Próximo &raquo;</button>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div
+  style="position: sticky; bottom: 20px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; display: flex; gap: 10px; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+  <button id="btnGerar" class="btn btn-secondary" disabled>Gerar Venda</button>
+  <button id="btnEdit" class="btn btn-secondary" disabled>Editar</button>
+  <button id="btnDel" class="btn btn-danger" disabled>Excluir</button>
+</div>
+
+<script>
+  const f = document.getElementById('formLeads'),
+    e = document.getElementById('btnEdit'),
+    d = document.getElementById('btnDel'),
+    g = document.getElementById('btnGerar');
+
+  if (f) {
+    f.addEventListener('change', () => {
+      const sel = f.querySelector('input[name="lead_id"]:checked'),
+        ok = !!sel;
+      e.disabled = d.disabled = g.disabled = !ok;
+      if (ok) {
+        const id = sel.value;
+        e.onclick = () => location.href = `${SCRIPT_ROOT}/vendas/leads/editar/${id}`;
+        g.onclick = () => location.href = `${SCRIPT_ROOT}/vendas/leads/gerar_venda/${id}`;
+        d.onclick = () => {
+          if (confirm('Excluir lead?')) {
+            fetch(`${SCRIPT_ROOT}/vendas/leads/excluir/${id}`, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': "{{ csrf_token() }}"
+              }
+            }).then(() => location.reload())
+          }
+        };
+
+        if (!g.disabled) g.classList.replace('btn-secondary', 'btn-primary');
+      }
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}500 - Erro no Servidor{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 100px 20px;">
+    <h1 style="font-size: 120px; color: #F59E0B; margin: 0;">500</h1>
+    <h2 style="font-size: 24px; color: #fff; margin-bottom: 20px;">Erro Interno do Servidor</h2>
+    <p style="color: #666; max-width: 500px; margin: 0 auto 30px;">
+        Algo deu errado do nosso lado. Já fomos notificados e estamos trabalhando para resolver. 
+        Por favor, tente recarregar a página ou voltar mais tarde.
+    </p>
+    <div style="display: flex; gap: 15px; justify-content: center;">
+        <a href="javascript:location.reload()" class="btn" style="text-decoration: none; background: #444;">
+            Recarregar Página
+        </a>
+        <a href="{{ url_for('main.index') }}" class="btn" style="text-decoration: none;">
+            Início
+        </a>
+    </div>
+</div>
+{% endblock %}

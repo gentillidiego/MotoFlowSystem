@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ moto.modelo }} - MotoFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #EF4444;
+            --red-dim: rgba(239,68,68,0.12);
+            --dark: #0A0A0A;
+            --gray: #9CA3AF;
+            --border: #1a1a1a;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #000;
+            color: #f3f4f6;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── HEADER ── */
+        .site-header {
+            background: #000;
+            padding: 28px 5% 28px;
+            display: flex; align-items: center; justify-content: center;
+            border-bottom: 1px solid #0e0e0e;
+            position: relative;
+        }
+
+        .btn-back {
+            position: absolute; left: 5%;
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--gray); text-decoration: none;
+            font-size: 0.78rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1.2px;
+            transition: color 0.2s, gap 0.2s;
+        }
+        .btn-back:hover { color: #fff; gap: 12px; }
+        .btn-back-label { display: inline; }
+
+        .header-center { text-align: center; }
+
+        .logo { max-width: 200px; height: auto; display: block; margin: 0 auto; }
+
+        .header-address {
+            font-style: normal; color: var(--gray);
+            font-size: 0.72rem; letter-spacing: 1.6px;
+            text-transform: uppercase; margin-top: 6px;
+        }
+
+        .social-row {
+            display: flex; justify-content: center; gap: 9px;
+            margin-top: 12px; flex-wrap: wrap;
+        }
+
+        .social-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 100px;
+            text-decoration: none; font-size: 0.76rem; font-weight: 600;
+            border: 1px solid #252525; background: #080808; color: #fff;
+            transition: border-color 0.25s, color 0.25s, transform 0.2s;
+        }
+        .social-btn:hover { transform: translateY(-2px); }
+        .btn-ig:hover { border-color: #E1306C; color: #E1306C; }
+        .btn-wa:hover { border-color: #25d366; color: #25d366; }
+
+        /* ── CONTAINER ── */
+        .container {
+            width: 92%; max-width: 1100px;
+            margin: 36px auto 80px;
+        }
+
+        /* ── GALLERY ── */
+        .gallery-wrap {
+            margin-bottom: 36px;
+            animation: fadeUp 0.55s ease both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .main-gallery {
+            position: relative;
+            border-radius: 16px; overflow: hidden;
+            background: #050505; border: 1px solid var(--border);
+            aspect-ratio: 16/9;
+            display: flex; align-items: center; justify-content: center;
+            touch-action: pan-y;
+        }
+
+        .main-img {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain; display: block;
+            cursor: zoom-in;
+            transition: opacity 0.25s ease;
+        }
+        .main-img.fading { opacity: 0; }
+
+        /* Nav arrows */
+        .nav-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            width: 42px; height: 70px;
+            border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10; opacity: 0.45;
+            transition: opacity 0.2s, background 0.2s, border-color 0.2s;
+            user-select: none;
+        }
+        .nav-arrow:hover {
+            opacity: 1;
+            background: rgba(239,68,68,0.75);
+            border-color: var(--red);
+        }
+        .nav-arrow.prev { left: 12px; }
+        .nav-arrow.next { right: 12px; }
+
+        /* Counter */
+        .gallery-counter {
+            position: absolute; bottom: 12px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.65);
+            color: #ccc; font-size: 0.74rem; font-weight: 500;
+            padding: 3px 13px; border-radius: 100px;
+            letter-spacing: 0.5px; pointer-events: none;
+        }
+
+        /* Placeholder */
+        .gallery-placeholder {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; color: #161616;
+        }
+
+        /* ── THUMBNAILS ── */
+        .thumbs {
+            display: flex; gap: 9px;
+            overflow-x: auto; padding: 12px 0 4px;
+            scrollbar-width: thin; scrollbar-color: #2a2a2a transparent;
+        }
+        .thumbs::-webkit-scrollbar { height: 3px; }
+        .thumbs::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+
+        .thumb {
+            width: 86px; height: 62px;
+            object-fit: cover; border-radius: 8px;
+            cursor: pointer; flex-shrink: 0;
+            opacity: 0.32; border: 2px solid transparent;
+            transition: opacity 0.22s, border-color 0.22s, transform 0.22s;
+        }
+        .thumb:hover { opacity: 0.65; transform: translateY(-2px); }
+        .thumb.active { opacity: 1; border-color: var(--red); transform: translateY(-2px); }
+
+        /* ── DETAILS GRID ── */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1.35fr 0.65fr;
+            gap: 24px;
+            animation: fadeUp 0.55s ease 0.12s both;
+        }
+
+        @media (max-width: 860px) {
+            .details-grid { grid-template-columns: 1fr; }
+            .sticky-box   { position: static; }
+        }
+
+        /* ── INFO CARD ── */
+        .info-card {
+            background: var(--dark);
+            padding: 34px; border-radius: 18px;
+            border: 1px solid var(--border);
+        }
+
+        .moto-title {
+            font-size: clamp(1.55rem, 3vw, 2rem);
+            font-weight: 800; letter-spacing: -0.5px;
+            color: #fff; margin-bottom: 4px; line-height: 1.2;
+        }
+
+        .price-label {
+            font-size: 0.72rem; color: var(--gray);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            display: block; margin-top: 14px;
+        }
+
+        .price-val {
+            font-size: clamp(1.75rem, 3.5vw, 2.3rem);
+            font-weight: 800; color: var(--red);
+            letter-spacing: -1px; display: block;
+            margin-bottom: 28px;
+        }
+
+        /* Specs */
+        .specs {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 11px; margin-bottom: 30px;
+        }
+
+        .spec {
+            padding: 13px 15px;
+            background: #111; border-radius: 11px;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+        .spec:hover { border-color: #282828; }
+
+        .spec-label {
+            font-size: 0.68rem; color: var(--gray);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            display: block; margin-bottom: 3px;
+        }
+        .spec-val {
+            font-size: 0.98rem; font-weight: 700; color: #fff;
+        }
+
+        /* Description */
+        .desc-section {
+            padding-top: 22px;
+            border-top: 1px solid var(--border);
+        }
+        .desc-section h3 {
+            font-size: 0.72rem; font-weight: 600;
+            color: var(--gray); text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 12px;
+        }
+        .desc-section p {
+            white-space: pre-wrap;
+            color: #999; font-size: 0.93rem; line-height: 1.9;
+        }
+
+        /* ── CTA PANEL ── */
+        .sticky-box { position: sticky; top: 22px; }
+
+        .card-cta {
+            background: var(--dark);
+            padding: 26px; border-radius: 18px;
+            border: 1px solid var(--border);
+        }
+
+        .cta-eyebrow {
+            font-size: 0.7rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1.8px;
+            color: var(--gray); margin-bottom: 5px;
+        }
+        .cta-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 3px; }
+        .cta-sub   { color: var(--gray); font-size: 0.82rem; margin-bottom: 20px; }
+
+        .actions { display: flex; flex-direction: column; gap: 11px; }
+
+        .btn-action {
+            padding: 15px; border-radius: 11px;
+            text-align: center; text-decoration: none;
+            font-weight: 700; font-size: 0.88rem;
+            text-transform: uppercase; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            border: none; cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .btn-whatsapp {
+            background: #25d366; color: #fff;
+            position: relative; overflow: hidden;
+        }
+        .btn-whatsapp::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+        .btn-whatsapp:hover::after { transform: translateX(100%); }
+        .btn-whatsapp:hover {
+            background: #1fba58;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(37,211,102,0.22);
+        }
+
+        .btn-finance {
+            background: transparent; color: #fff;
+            border: 1px solid #282828;
+        }
+        .btn-finance:hover {
+            border-color: var(--red);
+            background: var(--red-dim);
+            color: var(--red);
+            transform: translateY(-2px);
+        }
+
+        .cta-sep { height: 1px; background: var(--border); margin: 20px 0; }
+
+        .benefits { display: flex; flex-direction: column; gap: 9px; }
+        .benefit {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--gray); font-size: 0.8rem;
+        }
+        .check-icon {
+            flex-shrink: 0; width: 19px; height: 19px;
+            background: var(--red-dim); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--red);
+        }
+
+        /* ── MODAL ── */
+        .modal {
+            display: none; position: fixed; inset: 0; z-index: 900;
+            background: rgba(0,0,0,0.97);
+            align-items: center; justify-content: center;
+        }
+        .modal.open { display: flex; animation: fadeIn 0.18s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .modal-img {
+            max-width: 92vw; max-height: 88vh;
+            object-fit: contain; border-radius: 4px;
+            display: block;
+        }
+
+        .modal-close {
+            position: absolute; top: 18px; right: 24px;
+            color: #666; font-size: 2.2rem; font-weight: 300;
+            cursor: pointer; line-height: 1;
+            transition: color 0.2s;
+        }
+        .modal-close:hover { color: #fff; }
+
+        .modal-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: transparent; border: none; color: #555;
+            font-size: 3rem; font-weight: 200;
+            cursor: pointer; padding: 12px;
+            transition: color 0.2s; user-select: none;
+        }
+        .modal-nav:hover { color: var(--red); }
+        .modal-nav.prev { left: 16px; }
+        .modal-nav.next { right: 16px; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 560px) {
+            .btn-back-label { display: none; }
+            .btn-back {
+                background: rgba(255,255,255,0.04);
+                border: 1px solid #1e1e1e;
+                border-radius: 50%;
+                width: 36px; height: 36px;
+                display: flex; align-items: center; justify-content: center;
+                gap: 0;
+            }
+            .info-card { padding: 22px; }
+            .card-cta  { padding: 22px; }
+            .specs { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+
+    <!-- Meta Pixel -->
+    <script>
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+        document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init','850559744681183');fbq('track','PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=850559744681183&ev=PageView&noscript=1"/></noscript>
+</head>
+<body>
+
+<header class="site-header">
+    <a href="{{ url_for('catalogo.catalogo_lista') }}" class="btn-back">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span class="btn-back-label">Voltar</span>
+    </a>
+
+    <div class="header-center">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MotoFlow" class="logo">
+        <address class="header-address">Av. Walter Ananias 1206, Jaraguá &bull; Maceió</address>
+        <div class="social-row">
+            <a href="https://www.instagram.com/motoflow.maceio/" target="_blank" class="social-btn btn-ig">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.266.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.848 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.44-.645 1.44-1.44s-.645-1.44-1.44-1.44z"/></svg>
+                @motoflow.maceio
+            </a>
+            <a href="https://wa.me/5582988622332" target="_blank" class="social-btn btn-wa">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.912-.001-3.793-.457-5.47-1.32l-6.527 1.728zm6.576-5.058c1.511.895 3.018 1.488 4.754 1.489 5.4 0 9.792-4.393 9.794-9.791.001-2.614-1.017-5.071-2.868-6.922-1.851-1.852-4.309-2.87-6.925-2.87-5.4 0-9.792 4.392-9.794 9.791-.001 1.933.53 3.491 1.547 5.056l-.999 3.649 3.735-.973zm8.991-6.425c-.274-.137-1.623-.801-1.873-.892s-.433-.137-.617.137c-.184.274-.712.892-.871 1.075s-.318.206-.593.069c-.274-.137-1.16-.427-2.158-1.317-.777-.692-1.303-1.547-1.455-1.82s-.017-.422.12-.558c.124-.122.274-.32.411-.48.138-.16.183-.274.274-.457s.046-.343-.023-.48c-.069-.137-.617-1.486-.844-2.035-.221-.532-.444-.459-.617-.469-.159-.01-.343-.012-.527-.012s-.485.069-.738.343c-.252.274-.961.938-.961 2.289s.984 2.653 1.121 2.836c.137.184 1.938 2.96 4.695 4.151.656.284 1.168.453 1.569.58.66.21 1.261.18 1.735.109.529-.079 1.623-.663 1.851-1.303s.229-1.189.16-1.303c-.069-.115-.251-.207-.526-.344z"/></svg>
+                (82) 98862-2332
+            </a>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Gallery -->
+    <div class="gallery-wrap">
+        <div class="main-gallery" id="gallery">
+            {% if fotos %}
+                {% if fotos|length > 1 %}
+                <button class="nav-arrow prev" onclick="navigate(-1)" aria-label="Anterior">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button class="nav-arrow next" onclick="navigate(1)" aria-label="Próximo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                {% endif %}
+                <img id="mainImg" src="{{ fotos[0] }}" alt="{{ moto.modelo }}" class="main-img" onclick="openModal(currentIdx)">
+                {% if fotos|length > 1 %}
+                <div class="gallery-counter" id="counter">1 / {{ fotos|length }}</div>
+                {% endif %}
+            {% else %}
+                <div class="gallery-placeholder">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity:.08">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if fotos and fotos|length > 1 %}
+        <div class="thumbs">
+            {% for f in fotos %}
+            <img src="{{ f }}" class="thumb {% if loop.first %}active{% endif %}" onclick="goTo({{ loop.index0 }})" loading="lazy">
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Details -->
+    <div class="details-grid">
+
+        <div class="info-card">
+            <h1 class="moto-title">{{ moto.modelo }}</h1>
+            <span class="price-label">Preço</span>
+            <span class="price-val">
+                R$ {{ "{:,.2f}".format(moto.preco_venda or 0).replace(',','v').replace('.',',').replace('v','.') }}
+            </span>
+
+            <div class="specs">
+                <div class="spec">
+                    <span class="spec-label">Ano</span>
+                    <span class="spec-val">{{ moto.ano or '—' }}</span>
+                </div>
+                <div class="spec">
+                    <span class="spec-label">Quilometragem</span>
+                    <span class="spec-val">{{ "{:,}".format(moto.km | int).replace(',', '.') }} KM</span>
+                </div>
+                <div class="spec">
+                    <span class="spec-label">Cor</span>
+                    <span class="spec-val">{{ moto.cor or '—' }}</span>
+                </div>
+                <div class="spec">
+                    <span class="spec-label">Placa</span>
+                    <span class="spec-val">{{ moto.placa or '—' }}</span>
+                </div>
+            </div>
+
+            {% if moto.descricao %}
+            <div class="desc-section">
+                <h3>Descrição</h3>
+                <p>{{ moto.descricao }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <div class="sticky-box">
+                <div class="card-cta">
+                    <p class="cta-eyebrow">Interessado?</p>
+                    <h2 class="cta-title">Receba uma proposta</h2>
+                    <p class="cta-sub">Resposta em menos de 5 minutos.</p>
+
+                    <div class="actions">
+                        <a href="https://wa.me/5582988622332?text=Olá%2C+tenho+interesse+na+{{ moto.modelo | urlencode }}+{{ moto.ano or '' }}"
+                           target="_blank" class="btn-action btn-whatsapp">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.025 3.141l-.669 2.443 2.503-.656c.828.452 1.83.742 2.91.743h.001c3.181 0 5.768-2.586 5.769-5.766 0-3.18-2.587-5.768-5.771-5.768zm3.395 8.169c-.145.408-.84.773-1.159.818-.318.046-.628.114-1.786-.341-1.42-.559-2.339-2.009-2.411-2.103-.071-.094-.59-1.282-.59-2.454 0-1.171.611-1.746.828-1.981.217-.235.474-.294.633-.294s.318.001.456.007c.145.006.342-.054.536.41.194.464.664 1.62.71 1.714.047.094.076.204.015.334-.06.13-.091.21-.183.315-.091.104-.191.189-.272.285-.088.093-.18.196-.076.376.104.181.464.767 1.076 1.312.787.712 1.442.933 1.645 1.036.204.103.322.086.442-.053.12-.139.516-.602.653-.807.138-.204.276-.174.464-.105.188.07.669.314.782.373.111.058.188.09.215.138.028.048.028.271-.117.679zM12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm0 22c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10-4.477 10-10 10z"/></svg>
+                            Chamar no WhatsApp
+                        </a>
+                        <a href="https://wa.me/5582988622332?text=Quero+simular+financiamento+para+a+{{ moto.modelo | urlencode }}"
+                           target="_blank" class="btn-action btn-finance">
+                            Simular Financiamento
+                        </a>
+                    </div>
+
+                    <div class="cta-sep"></div>
+
+                    <div class="benefits">
+                        <div class="benefit">
+                            <span class="check-icon">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </span>
+                            48x sem entrada bancária
+                        </div>
+                        <div class="benefit">
+                            <span class="check-icon">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </span>
+                            Até 21x no cartão de crédito
+                        </div>
+                        <div class="benefit">
+                            <span class="check-icon">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </span>
+                            Garantia de motor e caixa
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div id="modal" class="modal" aria-label="Visualizar foto">
+    <button class="modal-nav prev" onclick="modalNav(-1)" aria-label="Anterior">&#10094;</button>
+    <img id="modalImg" class="modal-img" alt="">
+    <button class="modal-nav next" onclick="modalNav(1)"  aria-label="Próximo">&#10095;</button>
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+</div>
+
+<script>
+    let currentIdx = 0;
+    const photos = {{ (fotos or []) | tojson }};
+
+    function goTo(idx) {
+        if (!photos.length) return;
+        currentIdx = ((idx % photos.length) + photos.length) % photos.length;
+
+        const img = document.getElementById('mainImg');
+        img.classList.add('fading');
+        setTimeout(() => {
+            img.src = photos[currentIdx];
+            img.classList.remove('fading');
+        }, 130);
+
+        document.querySelectorAll('.thumb').forEach((t, i) =>
+            t.classList.toggle('active', i === currentIdx));
+
+        const counter = document.getElementById('counter');
+        if (counter) counter.textContent = `${currentIdx + 1} / ${photos.length}`;
+
+        const thumbs = document.querySelectorAll('.thumb');
+        if (thumbs[currentIdx])
+            thumbs[currentIdx].scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+    }
+
+    function navigate(dir) { goTo(currentIdx + dir); }
+
+    function openModal(idx) {
+        currentIdx = idx;
+        document.getElementById('modalImg').src = photos[idx];
+        document.getElementById('modal').classList.add('open');
+    }
+
+    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+    function modalNav(dir) {
+        goTo(currentIdx + dir);
+        document.getElementById('modalImg').src = photos[currentIdx];
+    }
+
+    // Keyboard
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight') { navigate(1);  if (document.getElementById('modal').classList.contains('open')) document.getElementById('modalImg').src = photos[currentIdx]; }
+        if (e.key === 'ArrowLeft')  { navigate(-1); if (document.getElementById('modal').classList.contains('open')) document.getElementById('modalImg').src = photos[currentIdx]; }
+        if (e.key === 'Escape') closeModal();
+    });
+
+    // Click outside modal
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // Touch swipe on gallery
+    let tx = 0;
+    const gal = document.getElementById('gallery');
+    if (gal) {
+        gal.addEventListener('touchstart', e => { tx = e.changedTouches[0].screenX; }, { passive: true });
+        gal.addEventListener('touchend',   e => {
+            const dx = e.changedTouches[0].screenX - tx;
+            if (Math.abs(dx) > 38) navigate(dx < 0 ? 1 : -1);
+        }, { passive: true });
+    }
+</script>
+
+</body>
+</html>

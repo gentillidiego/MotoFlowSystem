@@ -1,0 +1,55 @@
+# Ambiente virtual Python
+venv/
+.venv/
+env/
+
+# Banco de dados (dado real de produção — não versionar)
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Variáveis de ambiente e segredos
+.env
+*.env
+*.key
+*.json
+!requirements*.txt
+
+# Arquivos de log
+*.log
+servidor.log
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.coveragerc
+
+# IDE e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude / AI context local
+.claude/
+
+# Arquivos gerados / temporários
+*.docx
+documenta%C3%A7%C3%A3o.docx
+templates.restored1/
+
+# Docker volumes / dados persistidos
+data/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Moto Flow{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>const SCRIPT_ROOT = "{{ request.script_root }}";</script>
+    <!-- Meta Pixel Code -->
+    <script>
+        !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ?
+                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            };
+            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+            n.queue = []; t = b.createElement(e); t.async = !0;
+            t.src = v; s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s)
+        }(window, document, 'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '850559744681183');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=850559744681183&ev=PageView&noscript=1" /></noscript>
+    <!-- End Meta Pixel Code -->
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div style="text-align: center; margin: 20px 0;">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Confiance Motos"
+                style="max-width: 140px; height: auto;">
+        </div>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.index') }}"
+            class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('estoque.estoque') }}"
+            class="nav-link {% if 'estoque' in request.endpoint %}active{% endif %}">Estoque</a>
+        <a href="{{ url_for('vendas.vendas_home') }}"
+            class="nav-link {% if 'vendas' in request.endpoint and 'transferencias' not in request.endpoint %}active{% endif %}">Vendas</a>
+        <a href="{{ url_for('vendas.leads') }}"
+            class="nav-link {% if 'leads' in request.endpoint %}active{% endif %}">Leads</a>
+        <a href="{{ url_for('transferencias.transferencias_lista') }}"
+            class="nav-link {% if 'transferencias' in request.endpoint %}active{% endif %}">Transferências</a>
+        <a href="{{ url_for('financeiro.financeiro') }}"
+            class="nav-link {% if 'financeiro' in request.endpoint %}active{% endif %}">Financeiro</a>
+        {% endif %}
+
+        <a href="{{ url_for('catalogo.catalogo_lista') }}"
+            class="nav-link {% if 'catalogo' in request.endpoint %}active{% endif %}" target="_blank">Catálogo
+            Público</a>
+
+
+        {% if current_user.is_authenticated %}
+        <div style="margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
+            <div style="color: #666; font-size: 0.8rem; padding-left: 20px; margin-bottom: 5px;">Logado como: <strong
+                    style="color: #fff;">{{ current_user.usuario }}</strong></div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-link" style="color: #EF4444 !important;">Sair</a>
+
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('auth.usuarios_lista') }}" class="nav-link"
+                style="color: #F59E0B !important; margin-top: 0px;">Administração</a>
+            {% endif %}
+        </div>
+        {% else %}
+        <div style="margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
+            <a href="{{ url_for('auth.login') }}"
+                class="nav-link {% if 'login' in request.endpoint %}active{% endif %}">Entrar</a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+            <span class="close-btn" onclick="this.parentElement.style.display='none';">&times;</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>
