@@ -2,12 +2,11 @@
 
 Sistema de gestão (ERP) completo para concessionárias de motocicletas. Gerencia o ciclo de vida inteiro: **Estoque → Leads → Vendas → Financeiro → Transferência de documentos**.
 
-> **Para LLMs e desenvolvedores:** antes de qualquer alteração, leia também os arquivos de memória do projeto que registram decisões técnicas, histórico de melhorias e contexto atualizado:
+> **Para LLMs e desenvolvedores:** antes de qualquer alteração, leia também o arquivo de contexto técnico do projeto:
 >
-> - **Índice:** `/home/diego/.claude/projects/-home-diego-projetos-MotoFlowSystem/memory/MEMORY.md`
-> - **Memória principal:** `/home/diego/.claude/projects/-home-diego-projetos-MotoFlowSystem/memory/project_motoflowsystem.md`
+> - **Contexto técnico:** `Contexto/projeto_motoflow.md`
 >
-> Ao finalizar uma sessão de trabalho, atualize esses arquivos com qualquer mudança relevante feita no projeto.
+> Ao finalizar uma sessão de trabalho, atualize esse arquivo com qualquer mudança relevante feita no projeto.
 
 ---
 
@@ -66,6 +65,55 @@ Para desenvolver sem derrubar a produção, use o ambiente virtual com uma porta
 source venv/bin/activate
 flask run --port 5005
 # Acesse em :5005 para homologar. A produção em :5000 permanece intacta.
+```
+
+---
+
+## 🔄 Git — Sincronização Automática
+
+O projeto possui scripts de automação em `scripts/` para manter o repositório sempre atualizado.
+
+> **Pré-requisito:** `inotify-tools` instalado (`sudo apt install inotify-tools`)
+
+### Commit rápido (manual)
+
+Use após qualquer sessão de desenvolvimento para enviar tudo ao GitHub:
+
+```bash
+# Com mensagem personalizada:
+./scripts/sync.sh "feat: descrição da mudança"
+
+# Sem mensagem (usa timestamp automático):
+./scripts/sync.sh
+```
+
+### Watcher automático (background)
+
+Monitora o projeto em tempo real e faz push automaticamente após **10 segundos de inatividade**:
+
+```bash
+# Iniciar o watcher em background:
+./scripts/watch.sh &
+
+# Acompanhar os logs:
+# O watcher exibe notificações direto no terminal quando detecta mudanças.
+
+# Parar o watcher:
+kill %1   # ou Ctrl+C se estiver em foreground
+```
+
+> **Como funciona:** usa `inotifywait` para monitorar todos os arquivos do projeto (exceto `venv/`, `.git/`, `__pycache__/`). Ao detectar qualquer modificação, aguarda 10 segundos de inatividade (debounce) antes de fazer `git add . && git commit && git push`, evitando commits a cada tecla pressionada.
+
+### Fluxo recomendado
+
+```
+Editar arquivos  →  salvar  →  watcher detecta  →  10s inativo  →  push automático
+```
+
+Ou, ao final de cada sessão:
+
+```bash
+./scripts/sync.sh "feat: o que foi feito"
 ```
 
 ---
