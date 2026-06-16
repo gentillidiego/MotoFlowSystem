@@ -7,15 +7,8 @@ bp = Blueprint('catalogo', __name__)
 
 @bp.route("/catalogo")
 def catalogo_lista():
-    # Apenas motos não vendidas, priorizando Origem Própria
-    sql = """
-        SELECT * FROM motos 
-        WHERE vendido=0 
-        ORDER BY 
-            CASE WHEN origem = 'Propria' THEN 0 ELSE 1 END,
-            CASE WHEN fotos_url IS NOT NULL AND fotos_url != '' THEN 0 ELSE 1 END,
-            id DESC
-    """
+    # Apenas motos não vendidas ou que o usuário optou por manter
+    sql = "SELECT * FROM motos WHERE vendido=0 OR manter_catalogo=1"
     rows = query(sql)
     motos = []
     
@@ -35,6 +28,16 @@ def catalogo_lista():
             else:
                 moto['fotos_url'] = None
         motos.append(moto)
+        
+    # Ordena conforme a regra:
+    # 1. Qualquer moto sem foto vai para o final.
+    # 2. Se tiver foto, prioriza origem 'Propria'.
+    # 3. Empates ordenados por ID decrescente.
+    motos.sort(key=lambda m: (
+        0 if m.get('fotos_url') else 1,
+        0 if m.get('origem') == 'Propria' else 1,
+        -m['id']
+    ))
         
     return render_template("catalogo.html", motos=motos)
 
@@ -63,7 +66,7 @@ def catalogo_feed():
     if cached:
         return Response(cached, mimetype='application/xml')
 
-    sql = "SELECT * FROM motos WHERE vendido=0 ORDER BY id DESC"
+    sql = "SELECT * FROM motos WHERE vendido=0 OR manter_catalogo=1 ORDER BY id DESC"
     rows = query(sql)
     base_url = request.url_root.rstrip('/')
 

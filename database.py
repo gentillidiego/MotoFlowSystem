@@ -40,6 +40,7 @@ def init_db():
                 modelo TEXT, chassi TEXT, placa TEXT, cor TEXT, ano TEXT,
                 origem TEXT, preco_aquisicao REAL, preco_venda REAL,
                 vendido INTEGER DEFAULT 0,
+                manter_catalogo INTEGER DEFAULT 0,
                 km INTEGER,
                 fotos_url TEXT,
                 descricao TEXT

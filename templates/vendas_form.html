@@ -7,8 +7,9 @@
   <h1 class="text-center">{% if edit %}Editar Venda{% else %}Registrar Venda{% endif %}</h1>
 
   <div class="card">
-    <form method="POST">
+    <form method="POST" {% if not edit %}onsubmit="return confirmarExclusaoCatalogo(event, this)"{% endif %}>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="manter_catalogo" id="manter_catalogo" value="0">
       <h3>Dados do Cliente</h3>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div>
@@ -130,6 +131,12 @@
     d.innerHTML = `<input type="text" name="cv_desc" placeholder="Descrição" style="margin-bottom:0;">
                  <input type="number" step="0.01" name="cv_valor" placeholder="0.00" style="width:150px; margin-bottom:0;">`;
     document.getElementById('cvContainer').appendChild(d);
+  }
+
+  function confirmarExclusaoCatalogo(event, form) {
+    const excluir = confirm("Deseja EXCLUIR esta moto do catálogo público?\n\n- Clique em [OK] para excluir do site.\n- Clique em [Cancelar] para manter no site (iscar leads).");
+    document.getElementById('manter_catalogo').value = excluir ? '0' : '1';
+    return true;
   }
 </script>
 {% endblock %}

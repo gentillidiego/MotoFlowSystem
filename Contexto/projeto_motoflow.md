@@ -60,6 +60,10 @@ O sistema passou por uma fase intensa de otimização baseada no documento `anal
 - **Produção:** Ajuste no `init_db()` para funcionar corretamente com servidores WSGI (Gunicorn).
 - **Limpeza:** Remoção de arquivos `.db` residuais e placeholder de código morto.
 
+### 🏷️ Vendas & Catálogo Público
+- **Ordenação Inteligente:** Implementação de ordenação via Python garantindo que motos sem fotos válidas sejam deslocadas para o final do site.
+- **Isca de Leads:** Implementação do controle `manter_catalogo` que permite ao vendedor ocultar uma moto do estoque após a venda, mas mantê-la visível no site para atrair mais clientes.
+
 ---
 
 ## 5. Status Atual e Mecânicas Chave

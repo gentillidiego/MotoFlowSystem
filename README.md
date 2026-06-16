@@ -20,7 +20,7 @@ Sistema de gestão (ERP) completo para concessionárias de motocicletas. Gerenci
 | Vendas | `/vendas` | Conversão de lead em venda, custos por venda, proposta e termo |
 | Financeiro | `/financeiro` | Relatório mensal de lucro bruto/líquido + custos fixos |
 | Transferências | `/transferencias` | Workflow de documentação pós-venda |
-| Catálogo público | `/catalogo` | Vitrine pública sem login + feed XML Google Merchant |
+| Catálogo público | `/catalogo` | Vitrine pública + feed XML Google Merchant (com retenção de isca de leads e ordenação inteligente de fotos) |
 | API JSON | `/api/estoque` | Endpoint público com estoque disponível |
 
 ---

@@ -155,6 +155,7 @@ def _salvar_venda(editar, venda_id=None, lead_id=None, venda_original=None):
             execute("UPDATE motos SET vendido=0 WHERE id=?",
                     (venda_original["produto_id"],))
     else:
+        manter_catalogo = int(request.form.get("manter_catalogo", 0))
         with sqlite3.connect(DB) as c:
             cur = c.execute("""INSERT INTO vendas(
                           nome,telefone,cpf,data_nasc,endereco,bairro,cidade,cep,
@@ -165,7 +166,7 @@ def _salvar_venda(editar, venda_id=None, lead_id=None, venda_original=None):
                           :data_venda,:lead_id,:condicao_pagamento
                         )""", d)
             venda_id = cur.lastrowid
-            c.execute("UPDATE motos SET vendido=1 WHERE id=?", (d["produto_id"],))
+            c.execute("UPDATE motos SET vendido=1, manter_catalogo=? WHERE id=?", (manter_catalogo, d["produto_id"]))
 
     execute("DELETE FROM venda_custos WHERE venda_id=?", (venda_id,))
     for desc, val in zip(request.form.getlist("cv_desc"),
