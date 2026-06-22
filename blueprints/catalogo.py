@@ -7,8 +7,18 @@ bp = Blueprint('catalogo', __name__)
 
 @bp.route("/catalogo")
 def catalogo_lista():
+    filtro = request.args.get('filtro')
+    
     # Apenas motos não vendidas ou que o usuário optou por manter
-    sql = "SELECT * FROM motos WHERE vendido=0 OR manter_catalogo=1"
+    base_sql = "SELECT * FROM motos WHERE (vendido=0 OR manter_catalogo=1)"
+    
+    if filtro == '0km':
+        sql = base_sql + " AND origem = 'Fornecedor'"
+    elif filtro == 'seminovas':
+        sql = base_sql + " AND origem IN ('Propria', 'Consignada')"
+    else:
+        sql = base_sql
+        
     rows = query(sql)
     motos = []
     
@@ -39,7 +49,7 @@ def catalogo_lista():
         -m['id']
     ))
         
-    return render_template("catalogo.html", motos=motos)
+    return render_template("catalogo.html", motos=motos, filtro_atual=filtro)
 
 @bp.route("/catalogo/detalhes/<int:id>")
 def catalogo_detalhes(id):

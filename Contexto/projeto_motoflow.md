@@ -63,6 +63,7 @@ O sistema passou por uma fase intensa de otimização baseada no documento `anal
 ### 🏷️ Vendas & Catálogo Público
 - **Ordenação Inteligente:** Implementação de ordenação via Python garantindo que motos sem fotos válidas sejam deslocadas para o final do site.
 - **Isca de Leads:** Implementação do controle `manter_catalogo` que permite ao vendedor ocultar uma moto do estoque após a venda, mas mantê-la visível no site para atrair mais clientes.
+- **Filtros e Navegação:** Adição de botões para filtrar o estoque ("0KM" vs "Semi Novas") via query parameters (`?filtro=`) preservando as regras de exibição originais. A logo do catálogo também foi convertida em um botão de reset/retorno rápido.
 
 ---
 

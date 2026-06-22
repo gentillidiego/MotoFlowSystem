@@ -2,11 +2,15 @@
 
 Sistema de gestão (ERP) completo para concessionárias de motocicletas. Gerencia o ciclo de vida inteiro: **Estoque → Leads → Vendas → Financeiro → Transferência de documentos**.
 
+🌐 **Domínio principal:** [motoflowmaceio.com.br](https://motoflowmaceio.com.br)
+
 > **Para LLMs e desenvolvedores:** antes de qualquer alteração, leia também o arquivo de contexto técnico do projeto:
 >
 > - **Contexto técnico:** `Contexto/projeto_motoflow.md`
 >
 > Ao finalizar uma sessão de trabalho, atualize esse arquivo com qualquer mudança relevante feita no projeto.
+>
+> ⚠️ **REBILD OBRIGATÓRIO:** Ao finalizar e validar qualquer alteração no código (`.py`, templates, CSS, etc), você DEVE rodar o comando `docker compose up -d --build` para que as mudanças reflitam em produção. Não espere o usuário pedir.
 
 ---
 
@@ -20,7 +24,7 @@ Sistema de gestão (ERP) completo para concessionárias de motocicletas. Gerenci
 | Vendas | `/vendas` | Conversão de lead em venda, custos por venda, proposta e termo |
 | Financeiro | `/financeiro` | Relatório mensal de lucro bruto/líquido + custos fixos |
 | Transferências | `/transferencias` | Workflow de documentação pós-venda |
-| Catálogo público | `/catalogo` | Vitrine pública + feed XML Google Merchant (com retenção de isca de leads e ordenação inteligente de fotos) |
+| Catálogo público | `/catalogo` | Vitrine pública + feed XML Google Merchant (com retenção de isca de leads, ordenação inteligente de fotos e filtros por origem) |
 | API JSON | `/api/estoque` | Endpoint público com estoque disponível |
 
 ---
@@ -51,9 +55,44 @@ O sistema usa dois níveis de cache para minimizar chamadas à API do Google Dri
 
 O ecossistema do MotoFlow é **100% conteinerizado** via Docker. O app não deve ser executado via `systemd` na VPS, garantindo que o ambiente Python e as bibliotecas pesadas do WeasyPrint (`libpango`/`libffi`) fiquem isoladas dentro do container.
 
-- **Porta em Produção:** `5000`
+- **Porta em Produção:** `5000` (interna — exposta pelo Nginx)
 - **Banco de Dados Persistente:** O arquivo `estoque.db` e as imagens (`/static/images`) são **Volumes**. Você pode recriar o container do zero sem perder nenhum dado.
 - **Credenciais do Google Drive:** As chaves da Service Account ficam em `/home/diego/moto-flow-config/` (montada como volume somente-leitura `ro`).
+
+---
+
+## 🌐 Domínio e Nginx (VPS Hostinger)
+
+**VPS:** `72.60.248.85` (Hostinger KVM 2, Debian 13)
+
+### Domínio principal
+
+| URL | Destino |
+|---|---|
+| `https://motoflowmaceio.com.br` | App MotoFlow (proxy → porta 5000) |
+| `https://www.motoflowmaceio.com.br` | Redirect 301 → apex |
+| `http://motoflowmaceio.com.br` | Redirect 301 → HTTPS |
+| `https://diegopereira.cloud/MotoFlow/*` | Redirect 301 permanente → `motoflowmaceio.com.br/*` |
+
+### Nginx na VPS
+
+- **Config do MotoFlow:** `/etc/nginx/sites-available/motoflowmaceio.com.br`
+- **Config do `diegopereira.cloud`:** `/etc/nginx/sites-available/default` (compartilhada com outros projetos — **não alterar blocos não relacionados ao MotoFlow**)
+- **SSL:** Let's Encrypt via Certbot — auto-renovação ativa. Cert em `/etc/letsencrypt/live/motoflowmaceio.com.br/`
+- **Backup da config anterior:** `/etc/nginx/sites-available/default.bak.20260622`
+
+### Comandos Nginx úteis (na VPS)
+
+```bash
+# Testar sintaxe antes de recarregar
+sudo nginx -t
+
+# Recarregar sem downtime
+sudo nginx -s reload
+
+# Ver logs de erro
+sudo tail -f /var/log/nginx/error.log
+```
 
 ---
 

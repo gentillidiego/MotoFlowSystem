@@ -385,7 +385,9 @@
     </a>
 
     <div class="header-center">
-        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MotoFlow" class="logo">
+        <a href="{{ url_for('catalogo.catalogo_lista') }}" style="display: inline-block; text-decoration: none;">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MotoFlow" class="logo">
+        </a>
         <address class="header-address">Av. Walter Ananias 1206, Jaraguá &bull; Maceió</address>
         <div class="social-row">
             <a href="https://www.instagram.com/motoflow.maceio/" target="_blank" class="social-btn btn-ig">

@@ -97,6 +97,48 @@
         .btn-ig:hover  { border-color: #E1306C; color: #E1306C; }
         .btn-wa:hover  { border-color: #25d366;  color: #25d366; }
 
+        /* ── FILTERS ── */
+        .catalog-filters {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 28px;
+            animation: fadeUp 0.6s ease 0.3s both;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 24px;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid #333;
+            border-radius: 100px;
+            color: var(--gray);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .filter-btn:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
+        }
+
+        .filter-btn.active {
+            background: var(--red);
+            border-color: var(--red);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+        }
+
         /* ── MAIN ── */
         .main { padding: 56px 0 80px; }
 
@@ -351,7 +393,9 @@
 <body>
 
 <header class="site-header">
-    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MotoFlow" class="logo">
+    <a href="{{ url_for('catalogo.catalogo_lista') }}" style="display: inline-block; text-decoration: none;">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MotoFlow" class="logo">
+    </a>
     <div class="header-accent"></div>
     <div class="header-meta">
         <address class="header-address">Av. Walter Ananias 1206, Jaraguá &bull; Maceió</address>
@@ -364,6 +408,11 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.912-.001-3.793-.457-5.47-1.32l-6.527 1.728zm6.576-5.058c1.511.895 3.018 1.488 4.754 1.489 5.4 0 9.792-4.393 9.794-9.791.001-2.614-1.017-5.071-2.868-6.922-1.851-1.852-4.309-2.87-6.925-2.87-5.4 0-9.792 4.392-9.794 9.791-.001 1.933.53 3.491 1.547 5.056l-.999 3.649 3.735-.973zm8.991-6.425c-.274-.137-1.623-.801-1.873-.892s-.433-.137-.617.137c-.184.274-.712.892-.871 1.075s-.318.206-.593.069c-.274-.137-1.16-.427-2.158-1.317-.777-.692-1.303-1.547-1.455-1.82s-.017-.422.12-.558c.124-.122.274-.32.411-.48.138-.16.183-.274.274-.457s.046-.343-.023-.48c-.069-.137-.617-1.486-.844-2.035-.221-.532-.444-.459-.617-.469-.159-.01-.343-.012-.527-.012s-.485.069-.738.343c-.252.274-.961.938-.961 2.289s.984 2.653 1.121 2.836c.137.184 1.938 2.96 4.695 4.151.656.284 1.168.453 1.569.58.66.21 1.261.18 1.735.109.529-.079 1.623-.663 1.851-1.303s.229-1.189.16-1.303c-.069-.115-.251-.207-.526-.344z"/></svg>
                 (82) 98862-2332
             </a>
+        </div>
+        
+        <div class="catalog-filters">
+            <a href="{% if filtro_atual == '0km' %}{{ url_for('catalogo.catalogo_lista') }}{% else %}?filtro=0km{% endif %}" class="filter-btn {% if filtro_atual == '0km' %}active{% endif %}">0KM - Shineray</a>
+            <a href="{% if filtro_atual == 'seminovas' %}{{ url_for('catalogo.catalogo_lista') }}{% else %}?filtro=seminovas{% endif %}" class="filter-btn {% if filtro_atual == 'seminovas' %}active{% endif %}">Semi Novas</a>
         </div>
     </div>
 </header>
