@@ -10,10 +10,10 @@ O **MotoFlowSystem** é um ERP web especializado para lojas de motocicletas. Ele
 ---
 
 ## 2. Stack Tecnológica
-*   **Linguagem:** Python 3.13+
+*   **Linguagem:** Python 3.11 (container de produção) / 3.13 (dev local).
 *   **Framework Web:** Flask (Arquitetura baseada em Blueprints).
-*   **Banco de Dados:** SQLite3 (Localizado em `/home/diego/projetos/MotoFlowSystem/estoque.db`).
-*   **Servidor de Produção:** Gunicorn (Gerenciado via Systemd).
+*   **Banco de Dados:** SQLite3 (Localizado em `/home/diego/projetos/MotoFlowSystem/estoque.db`, persistido via volume Docker).
+*   **Servidor de Produção:** Gunicorn (3 workers), rodando dentro de um container Docker.
 *   **Cache:** Flask-Caching com backend `FileSystemCache` (Compartilhado entre workers).
 *   **Segurança:** 
     *   `Flask-WTF` para proteção CSRF.
@@ -69,9 +69,9 @@ O sistema passou por uma fase intensa de otimização baseada no documento `anal
 
 ## 5. Status Atual e Mecânicas Chave
 *   **Estado:** **Produção/Finalizado**. O sistema está estável, seguro e performante.
-*   **Mecânica de Venda:** Leads podem ser convertidos em Vendas, que por sua vez geram processos de Transferência automaticamente.
+*   **Mecânica de Venda:** Leads podem ser convertidos em Vendas. A Venda **não** cria uma Transferência automaticamente — o usuário precisa acionar manualmente `/transferencias/nova/<venda_id>` (botão "Iniciar Transf." na tela de Vendas) para abrir o workflow de documentação pós-venda.
 *   **Gestão de Fotos:** O sistema não armazena imagens localmente; ele gera thumbnails dinâmicos via Google Drive ID, economizando espaço em disco no servidor.
-*   **Deploy:** O serviço roda via `systemd` como usuário local (`motoflow.service`).
+*   **Deploy:** 100% conteinerizado via Docker (`docker-compose.yml` + `Dockerfile`). **Não roda via `systemd`** — isso isola as dependências pesadas do WeasyPrint (`libpango`/`libffi`) do sistema Debian da VPS. Promover mudanças para produção: `docker compose up -d --build`. Domínio: `motoflowmaceio.com.br` (Nginx + Let's Encrypt).
 
 ---
 
@@ -81,6 +81,7 @@ Ao continuar este projeto, observe:
 2.  **Banco de Dados:** Use sempre as funções do `database.py` para manter a padronização do logging de erros SQL.
 3.  **Testes:** Antes de qualquer commit, rode `PYTHONPATH=. venv/bin/pytest tests/`.
 4.  **Cache:** Se precisar cachear novos dados pesados, utilize o objeto `cache` importado de `extensions.py`.
+5.  **Deploy:** Após validar qualquer alteração em `.py`, templates ou CSS, rode `docker compose up -d --build` para promover para produção — não é necessário aguardar confirmação do usuário para esse passo.
 
 ---
-*Assinado: Antigravity AI Project Context — Março de 2026*
+*Atualizado em julho de 2026 para corrigir divergências sobre deploy (Docker, não systemd) e sobre a criação manual de Transferências.*

@@ -19,9 +19,9 @@ Sistema de gestão (ERP) completo para concessionárias de motocicletas. Gerenci
 | Módulo | Rota base | Descrição |
 |---|---|---|
 | Dashboard | `/` | KPIs do mês + alertas de transferências paradas há +48h |
-| Estoque | `/estoque` | CRUD de motos (Própria / Consignada / Fornecedor) com custos extras |
-| Leads | `/vendas/leads` | Prospecção com temperatura (quente/morno/frio) |
-| Vendas | `/vendas` | Conversão de lead em venda, custos por venda, proposta e termo |
+| Estoque | `/estoque` | CRUD de motos (Própria / Consignada / Fornecedor) com custos extras + busca por modelo, placa ou chassi |
+| Leads | `/vendas/leads` | Prospecção com temperatura (quente/morno/frio) + busca por nome |
+| Vendas | `/vendas` | Conversão de lead em venda, custos por venda, proposta e termo + busca por nome, CPF, veículo ou placa |
 | Financeiro | `/financeiro` | Relatório mensal de lucro bruto/líquido + custos fixos |
 | Transferências | `/transferencias` | Workflow de documentação pós-venda |
 | Catálogo público | `/catalogo` | Vitrine pública + feed XML Google Merchant (com retenção de isca de leads, ordenação inteligente de fotos e filtros por origem) |

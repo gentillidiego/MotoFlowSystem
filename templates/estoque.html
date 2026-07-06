@@ -15,6 +15,17 @@
   </div>
 </div>
 
+<form method="get"
+      action="{{ url_for('estoque.estoque_por_origem', origem=origem_slug) if origem_slug else url_for('estoque.estoque') }}"
+      style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <input type="text" name="q" value="{{ q or '' }}" placeholder="Buscar por modelo, placa ou chassi..."
+         class="form-control" style="flex: 1; padding: 8px 12px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+  <button type="submit" class="btn btn-secondary">Buscar</button>
+  {% if q %}
+  <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug) if origem_slug else url_for('estoque.estoque') }}" class="btn btn-secondary">Limpar</a>
+  {% endif %}
+</form>
+
 <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
   <div class="card text-center" style="flex: 1; min-width: 120px; margin-bottom: 0;">
     <h3 style="margin: 0; font-size: 1rem; color: #aaa;">Total</h3>
@@ -35,7 +46,7 @@
 </div>
 
 {% if not motos %}
-<p class="text-center">Nenhuma moto cadastrada.</p>
+<p class="text-center">{{ "Nenhuma moto encontrada para \"%s\"." % q if q else "Nenhuma moto cadastrada." }}</p>
 {% else %}
 <div class="card table-responsive">
   <form id="formTable">
@@ -86,9 +97,9 @@
   <div style="display: flex; gap: 10px;">
     {% if page > 1 %}
       {% if origem_slug %}
-        <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug, page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+        <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug, page=page-1, q=q or none) }}" class="btn btn-secondary">&laquo; Anterior</a>
       {% else %}
-        <a href="{{ url_for('estoque.estoque', page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+        <a href="{{ url_for('estoque.estoque', page=page-1, q=q or none) }}" class="btn btn-secondary">&laquo; Anterior</a>
       {% endif %}
     {% else %}
       <button class="btn btn-secondary" disabled>&laquo; Anterior</button>
@@ -96,9 +107,9 @@
 
     {% if page < total_pages %}
       {% if origem_slug %}
-        <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug, page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+        <a href="{{ url_for('estoque.estoque_por_origem', origem=origem_slug, page=page+1, q=q or none) }}" class="btn btn-secondary">Próximo &raquo;</a>
       {% else %}
-        <a href="{{ url_for('estoque.estoque', page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+        <a href="{{ url_for('estoque.estoque', page=page+1, q=q or none) }}" class="btn btn-secondary">Próximo &raquo;</a>
       {% endif %}
     {% else %}
       <button class="btn btn-secondary" disabled>Próximo &raquo;</button>

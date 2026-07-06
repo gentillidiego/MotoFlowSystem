@@ -16,20 +16,28 @@ bp = Blueprint('vendas', __name__)
 @login_required
 def leads():
     page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '').strip()
     per_page = 20
     offset = (page - 1) * per_page
 
-    total_count = query("SELECT COUNT(*) as total FROM leads", one=True)["total"]
+    where = ""
+    params = []
+    if q:
+        where = "WHERE l.nome LIKE ?"
+        params.append(f"%{q}%")
+
+    total_count = query(f"SELECT COUNT(*) as total FROM leads l {where}", params, one=True)["total"]
     total_pages = (total_count + per_page - 1) // per_page
 
-    rows = query("""
+    rows = query(f"""
         SELECT l.id,l.created_at,l.nome,l.telefone,l.cpf,l.data_nasc,
                 l.temperatura,m.modelo
         FROM leads l
         LEFT JOIN motos m ON m.id=l.produto_id
+        {where}
         ORDER BY l.created_at DESC
         LIMIT ? OFFSET ?
-    """, (per_page, offset))
+    """, params + [per_page, offset])
     leads = []
     for r in rows:
         item = dict(r)
@@ -39,8 +47,8 @@ def leads():
             except ValueError:
                 pass
         leads.append(item)
-    return render_template("leads.html", leads=leads, 
-                           page=page, total_pages=total_pages, total=total_count)
+    return render_template("leads.html", leads=leads,
+                           page=page, total_pages=total_pages, total=total_count, q=q)
 
 @bp.route("/vendas/leads/novo", methods=["GET","POST"])
 @bp.route("/vendas/leads/editar/<int:i>", methods=["GET","POST"])
@@ -88,21 +96,35 @@ def leads_excluir(i):
 @login_required
 def vendas_home():
     page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '').strip()
     per_page = 20
     offset = (page - 1) * per_page
 
-    total_count = query("SELECT COUNT(*) as total FROM vendas", one=True)["total"]
+    where = ""
+    params = []
+    if q:
+        where = "WHERE (v.nome LIKE ? OR v.cpf LIKE ? OR m.modelo LIKE ? OR m.placa LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like, like]
+
+    total_count = query(f"""
+        SELECT COUNT(*) as total
+        FROM vendas v
+        LEFT JOIN motos m ON m.id=v.produto_id
+        {where}
+    """, params, one=True)["total"]
     total_pages = (total_count + per_page - 1) // per_page
 
-    lista = query("""
+    lista = query(f"""
         SELECT v.id,v.data_venda,v.nome,m.modelo,v.cidade,v.telefone
         FROM vendas v
         LEFT JOIN motos m ON m.id=v.produto_id
+        {where}
         ORDER BY v.data_venda DESC
         LIMIT ? OFFSET ?
-    """, (per_page, offset))
+    """, params + [per_page, offset])
     return render_template("vendas.html", vendas=lista,
-                           page=page, total_pages=total_pages, total=total_count)
+                           page=page, total_pages=total_pages, total=total_count, q=q)
 
 @bp.route("/vendas/novo", methods=["GET","POST"])
 @login_required

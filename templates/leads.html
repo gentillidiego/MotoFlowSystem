@@ -8,8 +8,17 @@
   <a href="{{ url_for('vendas.leads_form') }}" class="btn btn-primary">+ Novo Lead</a>
 </div>
 
+<form method="get" action="{{ url_for('vendas.leads') }}" style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <input type="text" name="q" value="{{ q or '' }}" placeholder="Buscar por nome..."
+         class="form-control" style="flex: 1; padding: 8px 12px; background: #333; color: white; border: 1px solid #555; border-radius: 4px;">
+  <button type="submit" class="btn btn-secondary">Buscar</button>
+  {% if q %}
+  <a href="{{ url_for('vendas.leads') }}" class="btn btn-secondary">Limpar</a>
+  {% endif %}
+</form>
+
 {% if not leads %}
-<p class="text-center text-secondary">Nenhum lead cadastrado.</p>
+<p class="text-center text-secondary">{{ "Nenhum lead encontrado para \"%s\"." % q if q else "Nenhum lead cadastrado." }}</p>
 {% else %}
 <div class="card table-responsive">
   <form id="formLeads">
@@ -57,13 +66,13 @@
   <div class="text-secondary">Página <strong>{{ page }}</strong> de {{ total_pages }} ({{ total }} leads)</div>
   <div style="display: flex; gap: 10px;">
     {% if page > 1 %}
-      <a href="{{ url_for('vendas.leads', page=page-1) }}" class="btn btn-secondary">&laquo; Anterior</a>
+      <a href="{{ url_for('vendas.leads', page=page-1, q=q or none) }}" class="btn btn-secondary">&laquo; Anterior</a>
     {% else %}
       <button class="btn btn-secondary" disabled>&laquo; Anterior</button>
     {% endif %}
 
     {% if page < total_pages %}
-      <a href="{{ url_for('vendas.leads', page=page+1) }}" class="btn btn-secondary">Próximo &raquo;</a>
+      <a href="{{ url_for('vendas.leads', page=page+1, q=q or none) }}" class="btn btn-secondary">Próximo &raquo;</a>
     {% else %}
       <button class="btn btn-secondary" disabled>Próximo &raquo;</button>
     {% endif %}

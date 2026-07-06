@@ -11,22 +11,30 @@ bp = Blueprint('estoque', __name__)
 @login_required
 def estoque():
     page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '').strip()
     per_page = 20
     offset = (page - 1) * per_page
 
-    total_count = query("SELECT COUNT(*) as total FROM motos WHERE vendido=0", one=True)["total"]
+    where = "WHERE vendido=0"
+    params = []
+    if q:
+        where += " AND (modelo LIKE ? OR placa LIKE ? OR chassi LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like]
+
+    total_count = query(f"SELECT COUNT(*) as total FROM motos {where}", params, one=True)["total"]
     total_pages = (total_count + per_page - 1) // per_page
 
-    motos = query("""
-        SELECT m.*, 
+    motos = query(f"""
+        SELECT m.*,
                (m.preco_aquisicao + IFNULL(SUM(mc.valor), 0)) as custo_total
         FROM motos m
         LEFT JOIN moto_custos mc ON mc.moto_id = m.id
-        WHERE m.vendido=0
+        {where}
         GROUP BY m.id
         ORDER BY m.id DESC
         LIMIT ? OFFSET ?
-    """, (per_page, offset))
+    """, params + [per_page, offset])
     total      = len(motos)
     consignada = sum(1 for m in motos if m["origem"] == "Consignada")
     propria    = sum(1 for m in motos if m["origem"] == "Propria")
@@ -38,32 +46,41 @@ def estoque():
                            propria=propria,
                            fornecedor=fornecedor,
                            page=page,
-                           total_pages=total_pages)
+                           total_pages=total_pages,
+                           q=q)
 
 @bp.route("/estoque/origem/<origem>")
 def estoque_por_origem(origem):
     origem_map = {"consignadas":"Consignada","proprias":"Propria","fornecedor":"Fornecedor"}
     o = origem_map.get(origem.lower())
     page = request.args.get('page', 1, type=int)
+    q = request.args.get('q', '').strip()
     per_page = 20
     offset = (page - 1) * per_page
 
-    total_count = query("SELECT COUNT(*) as total FROM motos WHERE vendido=0 AND origem=?", (o,), one=True)["total"]
+    where = "WHERE vendido=0 AND origem=?"
+    params = [o]
+    if q:
+        where += " AND (modelo LIKE ? OR placa LIKE ? OR chassi LIKE ?)"
+        like = f"%{q}%"
+        params += [like, like, like]
+
+    total_count = query(f"SELECT COUNT(*) as total FROM motos {where}", params, one=True)["total"]
     total_pages = (total_count + per_page - 1) // per_page
 
-    motos = query("""
-        SELECT m.*, 
+    motos = query(f"""
+        SELECT m.*,
                (m.preco_aquisicao + IFNULL(SUM(mc.valor), 0)) as custo_total
         FROM motos m
         LEFT JOIN moto_custos mc ON mc.moto_id = m.id
-        WHERE m.vendido=0 AND m.origem=?
+        {where}
         GROUP BY m.id
         ORDER BY m.id DESC
         LIMIT ? OFFSET ?
-    """, (o, per_page, offset))
-    return render_template("estoque.html", motos=motos, total=total_count, 
+    """, params + [per_page, offset])
+    return render_template("estoque.html", motos=motos, total=total_count,
                            consignada=0, propria=0, fornecedor=0,
-                           page=page, total_pages=total_pages, origem_slug=origem)
+                           page=page, total_pages=total_pages, origem_slug=origem, q=q)
 
 @bp.route("/estoque/novo", methods=["GET","POST"])
 @bp.route("/estoque/editar/<int:i>", methods=["GET","POST"])
