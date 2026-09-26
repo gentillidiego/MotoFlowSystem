@@ -4,7 +4,14 @@
 
 {% block content %}
 <div class="container" style="max-width: 900px; margin: 0 auto;">
-  <h1 class="text-center">{% if edit %}Editar Venda{% else %}Registrar Venda{% endif %}</h1>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <h1 style="margin: 0;">{% if edit %}Editar Venda{% else %}Registrar Venda{% endif %}</h1>
+    {% if edit %}
+    <a href="{{ url_for('vendas.vendas_documentos', vid=venda.id) }}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+      📄 Documentação no Google Drive
+    </a>
+    {% endif %}
+  </div>
 
   <div class="card">
     <form method="POST" {% if not edit %}onsubmit="return confirmarExclusaoCatalogo(event, this)"{% endif %}>

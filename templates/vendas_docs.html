@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+
+{% block title %}Documentação de Venda: {{ venda.nome }} – Confiance Motos{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding-bottom: 60px;">
+
+  <!-- Botão Voltar e Cabeçalho Principal -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+    <div>
+      <a href="{{ url_for('vendas.vendas_home') }}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 0.85rem; padding: 6px 12px;">
+        &larr; Voltar para Histórico de Vendas
+      </a>
+      <h1 style="margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <span>{{ venda.nome }}</span>
+        {% if moto %}
+          <span style="background: rgba(37, 99, 235, 0.2); color: #60A5FA; border: 1px solid #2563EB; padding: 3px 10px; border-radius: 6px; font-size: 0.95rem;">
+            {{ moto.modelo }}
+          </span>
+          {% if moto.placa %}
+            <span style="background: #2563EB; color: #fff; padding: 3px 10px; border-radius: 6px; font-size: 0.95rem; font-family: monospace;">
+              {{ moto.placa }}
+            </span>
+          {% endif %}
+        {% endif %}
+      </h1>
+      <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 6px;">
+        <strong>Venda:</strong> #{{ venda.id }} | 
+        <strong>Data da Venda:</strong> {{ venda.data_venda or '—' }} | 
+        <strong>Telefone:</strong> {{ venda.telefone or '—' }} | 
+        <strong>CPF:</strong> {{ venda.cpf or '—' }} | 
+        <strong>Cidade:</strong> {{ venda.cidade or '—' }}
+        {% if moto %}
+          | <strong>Origem:</strong> {{ moto.origem or 'Usadas' }}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Status Google Drive -->
+    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+      {% if folder_id %}
+        <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 8px; height: 8px; background: #10B981; border-radius: 50%;"></span>
+          Google Drive Conectado
+        </span>
+        {% if docs.drive_url %}
+        <a href="{{ docs.drive_url }}" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;">
+          Abrir Pasta no Google Drive &nearr;
+        </a>
+        {% endif %}
+      {% else %}
+        <span style="background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid #F59E0B; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem;">
+          Sem Pasta Vinculada no Drive
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Alerta caso não tenha pasta vinculada ainda -->
+  {% if not folder_id %}
+  <div class="card" style="background: rgba(30, 41, 59, 0.7); border: 1px solid #3B82F6; margin-bottom: 30px; padding: 25px;">
+    <h3 style="margin-top: 0; color: #60A5FA;">Configurar Armazenamento no Google Drive</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem;">
+      Esta venda ainda não possui uma pasta vinculada para documentação. Você pode criar a estrutura automaticamente com 1 clique (organizada em USADAS - Vendidas ou Novas Shineray) ou vincular uma pasta já existente do Drive.
+    </p>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+      <!-- Opção 1: Criar automaticamente -->
+      <form method="POST" action="{{ url_for('vendas.vendas_documentos_criar_pasta', vid=venda.id) }}" style="flex: 1; min-width: 280px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="background: #181818; padding: 18px; border-radius: 8px; border: 1px solid #333; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h4 style="margin: 0 0 10px 0; color: #fff;">Opção 1: Criar Automaticamente</h4>
+            <p style="color: #888; font-size: 0.85rem; margin-bottom: 15px;">
+              Cria a pasta no Google Drive oficial (em <strong>USADAS - Vendidas</strong> ou <strong>Novas Shineray</strong>) e já inicializa as 5 subpastas oficiais.
+            </p>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            + Criar Estrutura no Google Drive
+          </button>
+        </div>
+      </form>
+
+      <!-- Opção 2: Vincular existente -->
+      <form method="POST" action="{{ url_for('vendas.vendas_documentos_vincular', vid=venda.id) }}" style="flex: 1; min-width: 280px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="background: #181818; padding: 18px; border-radius: 8px; border: 1px solid #333; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h4 style="margin: 0 0 10px 0; color: #fff;">Opção 2: Vincular Pasta Existente</h4>
+            <p style="color: #888; font-size: 0.85rem; margin-bottom: 12px;">
+              Cole o link completo ou o ID da pasta do veículo no Google Drive (ex: dentro de <em>USADAS - Vendidas/2026</em> ou <em>Novas Shineray</em>):
+            </p>
+            <input type="text" name="drive_folder_input" placeholder="https://drive.google.com/drive/folders/..." required style="width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 9px; border-radius: 6px; margin-bottom: 15px;">
+          </div>
+          <button type="submit" class="btn btn-secondary" style="width: 100%;">
+            Vincular Pasta Existente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Barra de Estatísticas Rápidas -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 15px; margin-bottom: 30px;">
+    {% for cat in categories %}
+      {% set count = docs.categories[cat.key].files|length if (docs.categories and cat.key in docs.categories) else 0 %}
+      <div style="background: #181818; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.4rem;">{{ cat.icon }}</span>
+          <div>
+            <div style="font-size: 0.8rem; color: #888;">{{ cat.badge }}</div>
+            <div style="font-size: 0.95rem; font-weight: 600; color: #eee;">{{ cat.label }}</div>
+          </div>
+        </div>
+        <span class="badge-count {% if count > 0 %}active{% endif %}">
+          {{ count }}
+        </span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- AVISO DE POLÍTICA: ZERO DISCO NA VPS -->
+  <div style="background: #111; border-left: 4px solid #10B981; padding: 10px 16px; border-radius: 4px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: #aaa;">
+    <div>
+      🛡️ <strong>Armazenamento 100% em Nuvem:</strong> Os documentos e fotos são processados na memória e enviados direto para o Google Drive. Nenhum arquivo ocupa espaço no disco da VPS.
+    </div>
+    <span style="color: #10B981; font-weight: 500;">Compactação Automática Ativa</span>
+  </div>
+
+  <!-- 5 SUBPASTAS / CATEGORIAS OFICIAIS -->
+  <div style="display: flex; flex-direction: column; gap: 30px;">
+    {% for cat in categories %}
+      {% set cat_data = docs.categories[cat.key] if (docs.categories and cat.key in docs.categories) else none %}
+      {% set files = cat_data.files if cat_data else [] %}
+
+      <div class="card" style="background: #141414; border: 1px solid #2a2a2a; border-radius: 10px; padding: 22px;">
+        
+        <!-- Cabeçalho da Categoria -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #262626; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 1.6rem;">{{ cat.icon }}</span>
+            <div>
+              <h2 style="margin: 0; font-size: 1.2rem; color: #fff;">{{ cat.label }}</h2>
+              <div style="color: #777; font-size: 0.8rem; margin-top: 2px;">
+                Pasta no Drive: <code style="color: #60A5FA;">{{ cat.name }}</code> &bull; {{ files|length }} arquivo(s)
+              </div>
+            </div>
+          </div>
+
+          <!-- Botão para abrir o formulário de upload -->
+          {% if folder_id %}
+          <button type="button" class="btn btn-secondary" onclick="toggleUpload('{{ cat.key }}')" style="font-size: 0.85rem; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+            <span id="btnIcon-{{ cat.key }}">+</span> Anexar {{ cat.badge }}
+          </button>
+          {% endif %}
+        </div>
+
+        <!-- Formulário de Upload (Colapsável) -->
+        {% if folder_id %}
+        <div id="uploadForm-{{ cat.key }}" style="display: none; background: #1c1c1c; border: 1px dashed #3B82F6; border-radius: 8px; padding: 18px; margin-bottom: 22px;">
+          <form method="POST" action="{{ url_for('vendas.vendas_documentos_upload', vid=venda.id) }}" enctype="multipart/form-data" onsubmit="handleUploadSubmit(event, this)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="categoria" value="{{ cat.key }}">
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label style="font-size: 0.9rem; font-weight: 500; color: #e5e7eb;">
+                Selecione um ou mais arquivos (PDF, JPG, PNG ou WEBP):
+              </label>
+
+              <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <input type="file" name="files" multiple accept=".pdf,image/*" required
+                       style="background: #282828; color: #fff; padding: 10px; border-radius: 6px; border: 1px solid #444; flex: 1; min-width: 250px;">
+                <button type="submit" class="btn btn-primary" style="padding: 10px 22px; display: inline-flex; align-items: center; gap: 6px;">
+                  <span>Enviar para o Drive</span>
+                </button>
+              </div>
+              <div style="font-size: 0.78rem; color: #888;">
+                * Fotos são compactadas automaticamente no celular antes do envio para economizar dados e acelerar o upload.
+              </div>
+            </div>
+          </form>
+        </div>
+        {% endif %}
+
+        <!-- Grid de Arquivos -->
+        {% if files|length > 0 %}
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px;">
+            {% for doc in files %}
+              <div style="background: #1b1b1b; border: 1px solid #2e2e2e; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
+                
+                <!-- Área Visual / Thumbnail -->
+                <div class="doc-preview-trigger"
+                     style="position: relative; height: 160px; background: #0f0f0f; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;"
+                     data-id="{{ doc.id }}" data-name="{{ doc.name }}" data-image="{{ 1 if doc.is_image else 0 }}"
+                     onclick="openPreviewFromElement(this)">
+                  
+                  {% if doc.is_image %}
+                    <img src="{{ doc.thumbnail_url }}" alt="{{ doc.name }}" loading="lazy"
+                         style="width: 100%; height: 100%; object-fit: cover;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; color: #888;">
+                      <span style="font-size: 2.2rem;">🖼️</span>
+                      <span style="font-size: 0.75rem; margin-top: 4px;">Imagem</span>
+                    </div>
+                  {% elif doc.is_pdf %}
+                    <img src="{{ doc.thumbnail_url }}" alt="{{ doc.name }}" loading="lazy"
+                         style="width: 100%; height: 100%; object-fit: contain; padding: 10px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; color: #EF4444;">
+                      <span style="font-size: 2.6rem;">📄</span>
+                      <span style="font-size: 0.75rem; font-weight: bold; margin-top: 4px; background: rgba(239, 68, 68, 0.2); padding: 2px 8px; border-radius: 4px;">PDF</span>
+                    </div>
+                  {% else %}
+                    <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; color: #888;">
+                      <span style="font-size: 2.4rem;">📁</span>
+                      <span style="font-size: 0.75rem; margin-top: 4px;">Arquivo</span>
+                    </div>
+                  {% endif %}
+
+                  <!-- Badge no canto -->
+                  <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.75); color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 500;">
+                    {{ 'FOTO' if doc.is_image else ('PDF' if doc.is_pdf else 'DOC') }}
+                  </div>
+                </div>
+
+                <!-- Detalhes do Arquivo -->
+                <div style="padding: 12px 14px; flex-grow: 1;">
+                  <div style="font-size: 0.88rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px;" title="{{ doc.name }}">
+                    {{ doc.name }}
+                  </div>
+                  <div style="font-size: 0.75rem; color: #777; display: flex; justify-content: space-between;">
+                    <span>{{ doc.size_fmt }}</span>
+                    <span>{{ doc.created_date }}</span>
+                  </div>
+                </div>
+
+                <!-- Ações do Arquivo -->
+                <div style="background: #161616; border-top: 1px solid #262626; padding: 10px 14px; display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 5px 9px;"
+                            data-id="{{ doc.id }}" data-name="{{ doc.name }}" data-image="{{ 1 if doc.is_image else 0 }}"
+                            onclick="openPreviewFromElement(this)">
+                      👁 Visualizar
+                    </button>
+                    <a href="{{ url_for('vendas.vendas_documentos_download', file_id=doc.id, name=doc.name) }}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 5px 9px; color: #60A5FA !important;" title="Baixar arquivo original sem passar pelo disco">
+                      ⬇ Baixar Original
+                    </a>
+                  </div>
+
+                  <!-- Botão Excluir -->
+                  <form method="POST" action="{{ url_for('vendas.vendas_documentos_excluir', vid=venda.id, file_id=doc.id) }}"
+                        onsubmit="return confirm('Deseja realmente excluir este documento do Google Drive?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger" style="font-size: 0.75rem; padding: 5px 8px; background: transparent; border: 1px solid #ef4444; color: #ef4444;" title="Excluir do Drive">
+                      &times;
+                    </button>
+                  </form>
+                </div>
+
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 25px; color: #666; font-size: 0.88rem; background: #111; border-radius: 6px;">
+            Nenhum documento anexado nesta categoria até o momento.
+          </div>
+        {% endif %}
+
+      </div>
+    {% endfor %}
+
+    <!-- SEÇÃO DE ARQUIVOS AVULSOS/LEGADOS NA RAIZ DA PASTA DA VENDA (SE HOUVER) -->
+    {% if docs.geral_files and docs.geral_files|length > 0 %}
+      <div class="card" style="background: #141414; border: 1px dashed #444; border-radius: 10px; padding: 22px;">
+        <div style="border-bottom: 1px solid #262626; padding-bottom: 15px; margin-bottom: 20px;">
+          <h2 style="margin: 0; font-size: 1.15rem; color: #F59E0B; display: flex; align-items: center; gap: 8px;">
+            <span>📁</span> Documentos Gerais Pré-existentes
+          </h2>
+          <div style="color: #777; font-size: 0.8rem; margin-top: 2px;">
+            Arquivos encontrados na raiz da pasta do veículo no Google Drive (arquivos antigos que não estavam em subpastas):
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px;">
+          {% for doc in docs.geral_files %}
+            <div style="background: #1b1b1b; border: 1px solid #2e2e2e; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
+              <div class="doc-preview-trigger"
+                   style="position: relative; height: 160px; background: #0f0f0f; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;"
+                   data-id="{{ doc.id }}" data-name="{{ doc.name }}" data-image="{{ 1 if doc.is_image else 0 }}"
+                   onclick="openPreviewFromElement(this)">
+                {% if doc.is_image %}
+                  <img src="{{ doc.thumbnail_url }}" alt="{{ doc.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                {% elif doc.is_pdf %}
+                  <img src="{{ doc.thumbnail_url }}" alt="{{ doc.name }}" style="width: 100%; height: 100%; object-fit: contain; padding: 10px;"
+                       onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                  <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; color: #EF4444;">
+                    <span style="font-size: 2.6rem;">📄</span>
+                    <span style="font-size: 0.75rem; font-weight: bold; margin-top: 4px;">PDF</span>
+                  </div>
+                {% endif %}
+              </div>
+              <div style="padding: 12px 14px;">
+                <div style="font-size: 0.88rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px;">
+                  {{ doc.name }}
+                </div>
+                <div style="font-size: 0.75rem; color: #777; display: flex; justify-content: space-between;">
+                  <span>{{ doc.size_fmt }}</span>
+                  <span>{{ doc.created_date }}</span>
+                </div>
+              </div>
+              <div style="background: #161616; border-top: 1px solid #262626; padding: 10px 14px; display: flex; gap: 8px; justify-content: space-between;">
+                <div style="display: flex; gap: 6px;">
+                  <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 5px 9px;"
+                          data-id="{{ doc.id }}" data-name="{{ doc.name }}" data-image="{{ 1 if doc.is_image else 0 }}"
+                          onclick="openPreviewFromElement(this)">
+                    👁 Visualizar
+                  </button>
+                  <a href="{{ url_for('vendas.vendas_documentos_download', file_id=doc.id, name=doc.name) }}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 5px 9px; color: #60A5FA !important;">
+                    ⬇ Baixar Original
+                  </a>
+                </div>
+                <form method="POST" action="{{ url_for('vendas.vendas_documentos_excluir', vid=venda.id, file_id=doc.id) }}"
+                      onsubmit="return confirm('Deseja realmente excluir este documento do Google Drive?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-danger" style="font-size: 0.75rem; padding: 5px 8px; background: transparent; border: 1px solid #ef4444; color: #ef4444;">
+                    &times;
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- MODAL LIGHTBOX DE VISUALIZAÇÃO (PREVIEW) -->
+<div id="previewModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+  <div style="background: #1a1a1a; border: 1px solid #333; border-radius: 10px; width: 92%; max-width: 900px; height: 86vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+    
+    <!-- Topo do Modal -->
+    <div style="padding: 12px 20px; background: #222; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+      <span id="previewTitle" style="font-weight: 600; color: #fff; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;">Visualização de Documento</span>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a id="previewDownloadBtn" href="#" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px; color: #60A5FA !important;">
+          ⬇ Baixar Original
+        </a>
+        <button onclick="closePreview()" class="btn btn-secondary" style="padding: 4px 10px; font-size: 1rem; line-height: 1;">&times;</button>
+      </div>
+    </div>
+
+    <!-- Conteúdo do Modal (Imagem ou Iframe Google Preview) -->
+    <div id="previewContainer" style="flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 10px;">
+      <!-- Preenchido via JavaScript -->
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleUpload(catKey) {
+    const el = document.getElementById('uploadForm-' + catKey);
+    const icon = document.getElementById('btnIcon-' + catKey);
+    if (el.style.display === 'none') {
+      el.style.display = 'block';
+      if (icon) icon.innerText = '−';
+    } else {
+      el.style.display = 'none';
+      if (icon) icon.innerText = '+';
+    }
+  }
+
+  // Comprime imagens no navegador antes de enviar (evita erro 413 do Nginx e acelera envio mobile)
+  async function compressImageFile(file, maxDim = 1600, quality = 0.8) {
+    if (!file.type || !file.type.startsWith('image/')) {
+      return file;
+    }
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(function(blob) {
+            if (blob && blob.size < file.size) {
+              const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+              const newFile = new File([blob], cleanName, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(newFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = function() { resolve(file); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function() { resolve(file); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleUploadSubmit(event, form) {
+    event.preventDefault();
+    const fileInput = form.querySelector('input[type="file"]');
+    const btn = form.querySelector('button[type="submit"]');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+      alert('Selecione pelo menos um arquivo.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display: inline-block; animation: spin 1s infinite linear;">↻</span> Otimizando arquivo(s)...';
+
+    try {
+      const formData = new FormData();
+      formData.append('csrf_token', form.querySelector('input[name="csrf_token"]').value);
+      formData.append('categoria', form.querySelector('input[name="categoria"]').value);
+
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const originalFile = fileInput.files[i];
+        let processedFile = originalFile;
+        if (originalFile.type && originalFile.type.startsWith('image/')) {
+          processedFile = await compressImageFile(originalFile, 1600, 0.8);
+        }
+        formData.append('files', processedFile);
+      }
+
+      btn.innerHTML = '<span style="display: inline-block; animation: spin 1s infinite linear;">↻</span> Enviando ao Drive...';
+
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok || response.redirected) {
+        window.location.reload();
+      } else {
+        if (response.status === 413) {
+          alert('Arquivo muito grande para envio direto (Limite do Servidor 413).');
+        } else {
+          alert('Erro no envio do documento (' + response.status + ').');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<span>Enviar para o Drive</span>';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro de conexão ao enviar o arquivo.');
+      btn.disabled = false;
+      btn.innerHTML = '<span>Enviar para o Drive</span>';
+    }
+  }
+
+  function openPreviewFromElement(el) {
+    const fileId = el.getAttribute('data-id');
+    const name = el.getAttribute('data-name');
+    const isImage = el.getAttribute('data-image') === '1';
+
+    const modal = document.getElementById('previewModal');
+    const container = document.getElementById('previewContainer');
+    const title = document.getElementById('previewTitle');
+    const dlBtn = document.getElementById('previewDownloadBtn');
+
+    title.innerText = name;
+    dlBtn.href = '/vendas/documentos/download/' + fileId + '?name=' + encodeURIComponent(name);
+
+    if (isImage) {
+      container.innerHTML = '<img src="https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;" alt="' + name + '">';
+    } else {
+      container.innerHTML = '<iframe src="https://drive.google.com/file/d/' + fileId + '/preview" style="width: 100%; height: 100%; border: none; border-radius: 4px;" allow="autoplay"></iframe>';
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function closePreview() {
+    const modal = document.getElementById('previewModal');
+    const container = document.getElementById('previewContainer');
+    modal.style.display = 'none';
+    container.innerHTML = '';
+  }
+
+  // Fechar ao pressionar ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closePreview();
+    }
+  });
+</script>
+
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .badge-count {
+    background: #242424;
+    color: #666;
+    font-weight: bold;
+    font-size: 0.9rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .badge-count.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60A5FA;
+  }
+</style>
+{% endblock %}

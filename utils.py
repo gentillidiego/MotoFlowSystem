@@ -54,7 +54,10 @@ DOC_CATEGORIES = [
 
 GDRIVE_PARENT_FOLDERS = {
     "Usadas": "1K9XyE8_N1p0LJ298q9aLfDvy3PXOPW1b",
-    "Novas": "1kBsqbdouRGjOnIo364Afz4eMjYy8wP9c"
+    "Novas": "1kBsqbdouRGjOnIo364Afz4eMjYy8wP9c",
+    "Vendidas": "1jQF7FsksJyShY27zsOQyC4yhpsaKHqRi",
+    "Vendidas_2026": "1QOD-xIZ3RN7f7IBc7zRMLh4Q-jgVo0v4",
+    "Vendidas_2024_2025": "1SvVUEg-plJWaVfbbYw36cZvnOIaq242P"
 }
 
 class User(UserMixin):
@@ -276,6 +279,66 @@ def create_moto_drive_folder(modelo, placa, ano=None, origem="Usadas"):
             return None
     except Exception as e:
         logging.error("Exceção ao criar pasta no Drive: %s", e)
+        return None
+
+def create_venda_drive_folder(venda, moto=None):
+    """
+    Cria a pasta raiz de documentação de uma venda no Google Drive:
+    - Se a moto for Nova/Shineray -> cria dentro de 'Novas Shineray' (1kBsqbdouRGjOnIo364Afz4eMjYy8wP9c)
+    - Se for Usada -> cria dentro de 'USADAS - Vendidas/2026' (1QOD-xIZ3RN7f7IBc7zRMLh4Q-jgVo0v4)
+    E inicializa imediatamente as 5 subpastas padronizadas.
+    """
+    token = get_gdrive_access_token()
+    if not token:
+        return None
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    origem = (moto.get("origem") if moto else "") or ""
+    modelo = ((moto.get("modelo") if moto else "") or "MOTO").strip()
+    is_nova = "nova" in origem.lower() or "shineray" in modelo.lower()
+
+    if is_nova:
+        parent_id = GDRIVE_PARENT_FOLDERS["Novas"]
+    else:
+        data_venda = (venda.get("data_venda") if venda else "") or ""
+        if data_venda and data_venda.startswith(("2024", "2025")):
+            parent_id = GDRIVE_PARENT_FOLDERS["Vendidas_2024_2025"]
+        else:
+            parent_id = GDRIVE_PARENT_FOLDERS["Vendidas_2026"]
+
+    ano = (moto.get("ano") if moto else "") or ""
+    placa = (moto.get("placa") if moto else "") or ""
+    cliente = (venda.get("nome") if venda else "") or ""
+
+    parts = [modelo]
+    if ano:
+        parts.append(str(ano).strip())
+    if placa:
+        parts.append(f"- {placa.strip().upper()}")
+    elif cliente:
+        parts.append(f"- {cliente.strip()}")
+    else:
+        parts.append("- SEM PLACA")
+
+    folder_name = " ".join(parts)
+
+    meta = {
+        'name': folder_name,
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [parent_id]
+    }
+    try:
+        r = requests.post('https://www.googleapis.com/drive/v3/files', json=meta, headers=headers, timeout=10)
+        if r.status_code == 200:
+            new_folder_id = r.json()['id']
+            ensure_moto_doc_subfolders(new_folder_id)
+            return new_folder_id
+        else:
+            logging.error("Erro ao criar pasta da venda no Drive: %s", r.text)
+            return None
+    except Exception as e:
+        logging.error("Exceção ao criar pasta de venda no Drive: %s", e)
         return None
 
 def format_doc_item(f, cat_key):

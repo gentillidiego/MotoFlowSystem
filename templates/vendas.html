@@ -38,7 +38,12 @@
         <tr onclick="document.getElementById('radio_{{ v.id }}').click();" style="cursor: pointer;">
           <td><input type="radio" name="venda_id" id="radio_{{ v.id }}" value="{{ v.id }}"></td>
           <td>{{ v.data_venda }}</td>
-          <td>{{ v.nome }}</td>
+          <td>
+            {{ v.nome }}
+            {% if v.drive_doc_folder_id or v.moto_folder_id %}
+              <a href="{{ url_for('vendas.vendas_documentos', vid=v.id) }}" title="Documentação Conectada no Google Drive" style="text-decoration:none; margin-left:6px; font-size:0.9rem;" onclick="event.stopPropagation();">📁</a>
+            {% endif %}
+          </td>
           <td>{{ v.modelo or '—' }}</td>
           <td>{{ v.cidade or '—' }}</td>
           <td>{{ v.telefone or '—' }}</td>
@@ -71,6 +76,7 @@
 <!-- Action Bar (Sticky Bottom or Fixed) -->
 <div
   style="position: sticky; bottom: 20px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; display: flex; gap: 10px; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); flex-wrap: wrap;">
+  <button id="btnDocs" class="btn btn-secondary" disabled style="display: inline-flex; align-items: center; gap: 6px;">📄 Documentação</button>
   <button id="btnTransf" class="btn btn-secondary" disabled>Iniciar Transf.</button>
   <button id="btnProp" class="btn btn-secondary" disabled>Proposta</button>
   <button id="btnTermo" class="btn btn-secondary" disabled>Termo</button>
@@ -103,6 +109,7 @@
 
 <script>
   const form = document.getElementById('formV'),
+    btnDocs = document.getElementById('btnDocs'),
     btnEdi = document.getElementById('btnEdit'),
     btnDel = document.getElementById('btnDel'),
     btnTra = document.getElementById('btnTransf'),
@@ -151,9 +158,10 @@
     form.addEventListener('change', () => {
       const sel = form.querySelector('input[name="venda_id"]:checked'),
         ok = !!sel;
-      btnEdi.disabled = btnDel.disabled = btnTra.disabled = btnProp.disabled = btnTermo.disabled = !ok;
+      btnDocs.disabled = btnEdi.disabled = btnDel.disabled = btnTra.disabled = btnProp.disabled = btnTermo.disabled = !ok;
       if (ok) {
         const id = sel.value;
+        btnDocs.onclick = () => location.href = `${SCRIPT_ROOT}/vendas/documentos/${id}`;
         btnEdi.onclick = () => location.href = `${SCRIPT_ROOT}/vendas/editar/${id}`;
         btnTra.onclick = () => location.href = `${SCRIPT_ROOT}/transferencias/nova/${id}`;
         btnProp.onclick = () => window.open(`${SCRIPT_ROOT}/vendas/${id}/proposta`, '_blank');

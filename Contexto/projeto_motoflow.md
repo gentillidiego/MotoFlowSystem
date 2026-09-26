@@ -66,20 +66,28 @@ O sistema passou por uma fase intensa de otimização baseada no documento `anal
 - **Filtros e Navegação:** Adição de botões para filtrar o estoque ("0KM" vs "Semi Novas") via query parameters (`?filtro=`) preservando as regras de exibição originais. A logo do catálogo também foi convertida em um botão de reset/retorno rápido.
 
 ### 📄 Documentação de Veículos (Google Drive Integrado - Zero Disco na VPS)
-- **Central de Documentos:** Botão "Documentação" no rodapé do Estoque e ícone de status direto na tabela levando à tela `/estoque/documentos/<id>`.
-- **5 Subcategorias Oficiais:**
+- **Central de Documentos no Estoque e em Vendas:** 
+  - No **Estoque**: Botão "Documentação" no rodapé e ícone de status direto na tabela levando à tela `/estoque/documentos/<id>`.
+  - Em **Vendas**: Botão "📄 Documentação" na barra de ações inferior da listagem de vendas (`/vendas`), ícone de pasta `📁` direto na tabela para vendas já conectadas e link no formulário de edição (`/vendas/editar/<id>`), levando para `/vendas/documentos/<vid>`.
+- **5 Subcategorias Oficiais Padronizadas:**
   1. `01_Documento_Veiculo` (CRLV / DUT)
   2. `02_Codigo_Seguranca` (Código de Segurança do Veículo - CRV / ATPV)
   3. `03_Documento_Comprador` (Documento do Comprador - CNH / RG / Comprovante)
   4. `04_Documento_Vendedor` (Documento do Vendedor - Identificação)
   5. `05_Fotos_Vistoria` (Fotos para Vistoria - Chassi / Motor / Hodômetro)
 - **Política Zero Disco na VPS:** NENHUM arquivo ou upload é salvo no disco da VPS.
-  - Imagens são otimizadas 100% em memória via Pillow (`io.BytesIO`) e enviadas por streaming pipe (`rclone rcat`) direto para a pasta da categoria no Google Drive.
+  - Imagens são compactadas no cliente (navegador/celular) via HTML5 Canvas (evitando erro HTTP 413 do Nginx), depois otimizadas em memória via Pillow (`io.BytesIO`) e enviadas por streaming pipe (`rclone rcat`) direto para a pasta da categoria no Google Drive.
   - PDFs são transmitidos diretamente da memória para o Drive.
   - Visualização usa thumbnails dinâmicos de alta velocidade servidos pelo CDN do Google Drive e iframe do Google Docs para PDFs.
   - Botão "Baixar Original" faz stream direto do Google Drive para o navegador via chunks sem alocar arquivos temporários no servidor.
-- **Estrutura no Drive:** Pastas alocadas na conta comercial `confiance.motos@gmail.com` em `backup_motos > Usadas` / `Novas Shineray`.
-- **Criação Automática:** Ao cadastrar um novo veículo no estoque, a pasta e as 5 subpastas são criadas automaticamente no Google Drive.
+- **Estrutura no Drive da Loja (`confiance.motos@gmail.com`):**
+  - `backup_motos > Usadas`: Motos em estoque.
+  - `backup_motos > USADAS - Vendidas > 2026` e `2024 - 2025`: Motos usadas vendidas.
+  - `backup_motos > Novas Shineray`: Motos 0km e novas (com subpastas por cilindrada/cliente).
+- **Criação e Sincronização Automática:**
+  - Script `sync_vendas_drive.py` mapeia automaticamente placas e clientes para as pastas correspondentes no Drive.
+  - Na tela da Venda, botão de criação automática detecta a origem e cria a pasta no local correto (`USADAS - Vendidas` ou `Novas Shineray`) com as 5 subpastas.
+  - Opção de vincular qualquer link de pasta existente do Google Drive.
 
 ---
 

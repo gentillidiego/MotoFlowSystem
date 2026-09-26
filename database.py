@@ -66,7 +66,8 @@ def init_db():
                 nome TEXT, telefone TEXT, cpf TEXT, data_nasc TEXT,
                 endereco TEXT, bairro TEXT, cidade TEXT, cep TEXT, email TEXT,
                 produto_id INTEGER, data_venda TEXT, lead_id INTEGER,
-                condicao_pagamento TEXT
+                condicao_pagamento TEXT,
+                drive_doc_folder_id TEXT
             )""")
         c.execute("""
             CREATE TABLE IF NOT EXISTS venda_custos(
@@ -97,3 +98,10 @@ def init_db():
                 observacoes TEXT,
                 FOREIGN KEY(venda_id) REFERENCES vendas(id) ON DELETE CASCADE
             )""")
+
+        # Garante migração de colunas caso as tabelas tenham sido criadas anteriormente
+        for tbl in ("motos", "vendas"):
+            cur = c.execute(f"PRAGMA table_info({tbl})")
+            cols = [r[1] for r in cur.fetchall()]
+            if "drive_doc_folder_id" not in cols:
+                c.execute(f"ALTER TABLE {tbl} ADD COLUMN drive_doc_folder_id TEXT")

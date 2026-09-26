@@ -1,10 +1,15 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, Response
 from flask_login import login_required, current_user
 from datetime import datetime
 from werkzeug.security import check_password_hash
 import sqlite3
 from database import query, execute, DB
-from utils import motos_dropdown
+from utils import (
+    motos_dropdown, DOC_CATEGORIES, get_gdrive_folder_id,
+    ensure_moto_doc_subfolders, list_moto_documents,
+    upload_moto_document, delete_moto_document,
+    stream_gdrive_file, create_venda_drive_folder
+)
 
 bp = Blueprint('vendas', __name__)
 
@@ -116,7 +121,8 @@ def vendas_home():
     total_pages = (total_count + per_page - 1) // per_page
 
     lista = query(f"""
-        SELECT v.id,v.data_venda,v.nome,m.modelo,v.cidade,v.telefone
+        SELECT v.id,v.data_venda,v.nome,m.modelo,v.cidade,v.telefone,
+               v.drive_doc_folder_id, m.drive_doc_folder_id as moto_folder_id
         FROM vendas v
         LEFT JOIN motos m ON m.id=v.produto_id
         {where}
@@ -263,3 +269,186 @@ def venda_termo(i):
     v = query("SELECT * FROM vendas WHERE id=?", (i,), one=True)
     m = query("SELECT * FROM motos WHERE id=?", (v["produto_id"],), one=True)
     return render_template("termo.html", v=v, m=m)
+
+# ==========================================
+# GESTÃO DE DOCUMENTAÇÃO DE VENDAS (GOOGLE DRIVE)
+# ==========================================
+
+@bp.route("/vendas/documentos/<int:vid>")
+@login_required
+def vendas_documentos(vid):
+    venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
+    if not venda:
+        flash("Venda não encontrada.", "error")
+        return redirect(url_for("vendas.vendas_home"))
+
+    moto = None
+    if venda["produto_id"]:
+        moto = query("SELECT * FROM motos WHERE id=?", (venda["produto_id"],), one=True)
+
+    folder_id = venda["drive_doc_folder_id"] or (moto["drive_doc_folder_id"] if moto else None)
+    docs_data = list_moto_documents(folder_id) if folder_id else {
+        "categories": {}, "geral_files": [], "total_files": 0, "drive_url": None
+    }
+
+    return render_template(
+        "vendas_docs.html",
+        venda=venda,
+        moto=moto,
+        docs=docs_data,
+        categories=DOC_CATEGORIES,
+        folder_id=folder_id
+    )
+
+@bp.route("/vendas/documentos/<int:vid>/upload", methods=["POST"])
+@login_required
+def vendas_documentos_upload(vid):
+    venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
+    if not venda:
+        flash("Venda não encontrada.", "error")
+        return redirect(url_for("vendas.vendas_home"))
+
+    moto = query("SELECT * FROM motos WHERE id=?", (venda["produto_id"],), one=True) if venda["produto_id"] else None
+
+    categoria = request.form.get("categoria")
+    valid_keys = [c["key"] for c in DOC_CATEGORIES]
+    if categoria not in valid_keys:
+        flash("Categoria de documento inválida.", "error")
+        return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+    folder_id = venda["drive_doc_folder_id"] or (moto["drive_doc_folder_id"] if moto else None)
+    if not folder_id:
+        folder_id = create_venda_drive_folder(venda, moto)
+        if folder_id:
+            execute("UPDATE vendas SET drive_doc_folder_id=? WHERE id=?", (folder_id, vid))
+            if moto and not moto["drive_doc_folder_id"]:
+                execute("UPDATE motos SET drive_doc_folder_id=? WHERE id=?", (folder_id, moto["id"]))
+            venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
+        else:
+            flash("Falha ao inicializar pasta da venda no Google Drive.", "error")
+            return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+    subfolders = ensure_moto_doc_subfolders(folder_id)
+    target_info = subfolders.get(categoria)
+    if not target_info or not target_info.get("id"):
+        flash("Subpasta da categoria não encontrada no Drive.", "error")
+        return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+    target_subfolder_id = target_info["id"]
+
+    uploaded_files = request.files.getlist("files")
+    if not uploaded_files or (len(uploaded_files) == 1 and not uploaded_files[0].filename):
+        flash("Nenhum arquivo selecionado para upload.", "warning")
+        return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+    success_count = 0
+    errors = []
+
+    for f in uploaded_files:
+        if not f.filename:
+            continue
+        # ZERO bytes no disco da VPS: leitura e streaming 100% em memória
+        file_bytes = f.read()
+        if not file_bytes:
+            continue
+
+        ok, err = upload_moto_document(file_bytes, f.filename, target_subfolder_id, folder_id)
+        if ok:
+            success_count += 1
+        else:
+            errors.append(f"{f.filename}: {err}")
+
+    if success_count > 0:
+        flash(f"{success_count} arquivo(s) enviado(s) para o Google Drive com sucesso!", "success")
+    if errors:
+        flash(f"Alguns erros ocorreram: {'; '.join(errors)}", "error")
+
+    return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+@bp.route("/vendas/documentos/<int:vid>/criar-pasta", methods=["POST"])
+@login_required
+def vendas_documentos_criar_pasta(vid):
+    venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
+    if not venda:
+        flash("Venda não encontrada.", "error")
+        return redirect(url_for("vendas.vendas_home"))
+
+    moto = query("SELECT * FROM motos WHERE id=?", (venda["produto_id"],), one=True) if venda["produto_id"] else None
+
+    folder_id = create_venda_drive_folder(venda, moto)
+    if folder_id:
+        execute("UPDATE vendas SET drive_doc_folder_id=? WHERE id=?", (folder_id, vid))
+        if moto and not moto["drive_doc_folder_id"]:
+            execute("UPDATE motos SET drive_doc_folder_id=? WHERE id=?", (folder_id, moto["id"]))
+        flash("Estrutura completa de documentação criada no Google Drive com sucesso!", "success")
+    else:
+        flash("Erro ao criar pastas no Google Drive.", "error")
+
+    return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+@bp.route("/vendas/documentos/<int:vid>/vincular", methods=["POST"])
+@login_required
+def vendas_documentos_vincular(vid):
+    venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
+    if not venda:
+        flash("Venda não encontrada.", "error")
+        return redirect(url_for("vendas.vendas_home"))
+
+    url_or_id = request.form.get("drive_folder_input", "").strip()
+    fid = get_gdrive_folder_id(url_or_id)
+    if not fid:
+        flash("Link ou ID de pasta do Google Drive inválido.", "error")
+        return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+    execute("UPDATE vendas SET drive_doc_folder_id=? WHERE id=?", (fid, vid))
+    if venda["produto_id"]:
+        moto = query("SELECT * FROM motos WHERE id=?", (venda["produto_id"],), one=True)
+        if moto and not moto["drive_doc_folder_id"]:
+            execute("UPDATE motos SET drive_doc_folder_id=? WHERE id=?", (fid, moto["id"]))
+
+    ensure_moto_doc_subfolders(fid)
+    flash("Pasta do Google Drive vinculada com sucesso à venda!", "success")
+    return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+@bp.route("/vendas/documentos/<int:vid>/excluir/<file_id>", methods=["POST"])
+@login_required
+def vendas_documentos_excluir(vid, file_id):
+    venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
+    if not venda:
+        flash("Venda não encontrada.", "error")
+        return redirect(url_for("vendas.vendas_home"))
+
+    moto = query("SELECT * FROM motos WHERE id=?", (venda["produto_id"],), one=True) if venda["produto_id"] else None
+    folder_id = venda["drive_doc_folder_id"] or (moto["drive_doc_folder_id"] if moto else None)
+
+    ok, err = delete_moto_document(file_id, folder_id)
+    if ok:
+        flash("Documento excluído do Google Drive com sucesso!", "success")
+    else:
+        flash(f"Erro ao excluir documento: {err}", "error")
+
+    return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
+@bp.route("/vendas/documentos/download/<file_id>")
+@login_required
+def vendas_documentos_download(file_id):
+    """
+    Faz o streaming direto do arquivo original do Google Drive para o usuário
+    sem salvar nenhum byte temporário no disco da VPS.
+    """
+    stream_iter, content_type = stream_gdrive_file(file_id)
+    if not stream_iter:
+        flash("Não foi possível transferir o arquivo do Google Drive.", "error")
+        return redirect(request.referrer or url_for("vendas.vendas_home"))
+
+    filename = request.args.get("name", "documento")
+    safe_name = filename.replace('"', '').replace('\n', '')
+
+    return Response(
+        stream_iter,
+        content_type=content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}"'
+        }
+    )
+
