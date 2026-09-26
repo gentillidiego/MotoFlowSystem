@@ -116,3 +116,44 @@ def test_vendas_docs_download_streaming(auth_client):
         assert resp.status_code == 200
         assert resp.data == b"chunk1chunk2"
         assert "attachment; filename=\"doc_original.pdf\"" in resp.headers.get("Content-Disposition")
+
+def test_vendas_docs_upload_rejected_extension(auth_client):
+    execute("INSERT INTO vendas (nome, data_venda, drive_doc_folder_id) VALUES ('Cliente Malicioso', '2026-09-26', 'folder_123')")
+    v = query("SELECT id FROM vendas WHERE nome='Cliente Malicioso'", one=True)
+    venda_id = v["id"]
+
+    with patch("blueprints.vendas.ensure_moto_doc_subfolders") as mock_sub, \
+         patch("blueprints.vendas.upload_moto_document") as mock_upload:
+        
+        mock_sub.return_value = {"veiculo": {"id": "sub_veiculo_id", "name": "01_Documento_Veiculo"}}
+        
+        data = {
+            "categoria": "veiculo",
+            "files": (io.BytesIO(b"malicious script"), "exploit.exe")
+        }
+        resp = auth_client.post(f"/vendas/documentos/{venda_id}/upload", data=data, content_type="multipart/form-data")
+        assert resp.status_code == 302
+        # upload_moto_document should NOT have been called because extension is rejected
+        assert not mock_upload.called
+
+    execute("DELETE FROM vendas WHERE id=?", (venda_id,))
+
+def test_vendas_docs_download_crlf_sanitized(auth_client):
+    with patch("blueprints.vendas.stream_gdrive_file") as mock_stream:
+        mock_stream.return_value = (iter([b"safe"]), "application/pdf")
+        # Attempt CRLF injection in name parameter
+        resp = auth_client.get("/vendas/documentos/download/file_test_123?name=doc%0D%0ASet-Cookie:%20evil=1.pdf")
+        assert resp.status_code == 200
+        cd = resp.headers.get("Content-Disposition")
+        assert "\r" not in cd
+        assert "\n" not in cd
+        assert "Set-Cookie" in cd # sanitized inline without breaking headers
+
+def test_vendas_docs_invalid_id_rejected(auth_client):
+    # Path traversal is blocked directly by Flask router (404)
+    resp_traversal = auth_client.get("/vendas/documentos/download/../../etc/passwd")
+    assert resp_traversal.status_code == 404
+
+    # Invalid ID with non-alphanumeric chars is rejected by view validation (302)
+    resp_invalid = auth_client.get("/vendas/documentos/download/invalid%20id%21%40%23")
+    assert resp_invalid.status_code == 302

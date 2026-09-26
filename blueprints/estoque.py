@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash
 import sqlite3
 import logging
+import os
 from database import query, execute, DB
 from utils import (
     to_float,
@@ -13,7 +14,10 @@ from utils import (
     create_moto_drive_folder,
     get_gdrive_folder_id,
     ensure_moto_doc_subfolders,
-    DOC_CATEGORIES
+    DOC_CATEGORIES,
+    ALLOWED_DOC_EXTENSIONS,
+    is_valid_gdrive_id,
+    sanitize_filename_header
 )
 
 bp = Blueprint('estoque', __name__)
@@ -248,6 +252,12 @@ def estoque_documentos_upload(i):
     for f in uploaded_files:
         if not f.filename:
             continue
+
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in ALLOWED_DOC_EXTENSIONS:
+            errors.append(f"{f.filename}: formato '{ext}' não permitido. Use PDF ou imagem (JPG, PNG, WEBP).")
+            continue
+
         # Lê 100% em memória - ZERO bytes gravados no disco da VPS
         file_bytes = f.read()
         if not file_bytes:
@@ -308,6 +318,10 @@ def estoque_documentos_vincular(i):
 @bp.route("/estoque/documentos/<int:i>/excluir/<file_id>", methods=["POST"])
 @login_required
 def estoque_documentos_excluir(i, file_id):
+    if not is_valid_gdrive_id(file_id):
+        flash("Identificador de arquivo inválido.", "error")
+        return redirect(url_for("estoque.estoque_documentos", i=i))
+
     moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
     if not moto:
         flash("Veículo não encontrado.", "error")
@@ -328,14 +342,17 @@ def estoque_documentos_download(file_id):
     Faz o streaming direto do arquivo original do Google Drive para o usuário
     sem salvar nenhum byte temporário no disco da VPS.
     """
+    if not is_valid_gdrive_id(file_id):
+        flash("Identificador de arquivo inválido.", "error")
+        return redirect(request.referrer or url_for("estoque.estoque"))
+
     stream_iter, content_type = stream_gdrive_file(file_id)
     if not stream_iter:
         flash("Não foi possível transferir o arquivo do Google Drive.", "error")
         return redirect(request.referrer or url_for("estoque.estoque"))
 
     filename = request.args.get("name", "documento")
-    # Evita quebra de headers HTTP
-    safe_name = filename.replace('"', '').replace('\n', '')
+    safe_name = sanitize_filename_header(filename)
 
     return Response(
         stream_iter,

@@ -60,6 +60,19 @@ GDRIVE_PARENT_FOLDERS = {
     "Vendidas_2024_2025": "1SvVUEg-plJWaVfbbYw36cZvnOIaq242P"
 }
 
+ALLOWED_DOC_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+
+def is_valid_gdrive_id(fid):
+    """Valida se o identificador do Google Drive possui formato seguro."""
+    return bool(fid and re.match(r'^[a-zA-Z0-9_-]{10,}$', str(fid).strip()))
+
+def sanitize_filename_header(filename, default="documento"):
+    """Sanitiza nomes de arquivos para headers Content-Disposition prevenindo CRLF injection."""
+    if not filename:
+        return default
+    safe = re.sub(r'[\r\n"\x00-\x1f]', '', str(filename)).strip()
+    return safe or default
+
 class User(UserMixin):
     def __init__(self, id, usuario, senha_hash, is_admin=0):
         self.id = id
@@ -477,9 +490,16 @@ def upload_moto_document(file_bytes, filename, target_folder_id, moto_folder_id=
     Nenhum arquivo ou byte temporário é gravado no disco da VPS.
     Imagens são comprimidas com Pillow antes do envio.
     """
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_DOC_EXTENSIONS:
+        return False, f"Extensão '{ext}' não permitida. Use PDF ou imagem (JPG, PNG, WEBP)."
+
+    if not is_valid_gdrive_id(target_folder_id):
+        return False, "Pasta de destino do Drive inválida."
+
     clean_filename = secure_filename(filename) or "documento"
     # Se o nome não tiver extensão, tentar inferir ou manter
-    is_img = any(clean_filename.lower().endswith(ext) for ext in ('.jpg', '.jpeg', '.png', '.webp', '.bmp'))
+    is_img = any(clean_filename.lower().endswith(img_ext) for img_ext in ('.jpg', '.jpeg', '.png', '.webp', '.bmp'))
     if is_img:
         file_bytes, _ = optimize_image_bytes(file_bytes)
 
@@ -504,6 +524,9 @@ def upload_moto_document(file_bytes, filename, target_folder_id, moto_folder_id=
 
 def delete_moto_document(file_id, moto_folder_id=None):
     """Exclui arquivo do Google Drive e invalida cache."""
+    if not is_valid_gdrive_id(file_id):
+        return False, "Identificador de arquivo inválido"
+
     token = get_gdrive_access_token()
     if not token:
         return False, "Token indisponível"
@@ -525,6 +548,9 @@ def stream_gdrive_file(file_id):
     Gera chunks de 16KB diretamente do Google Drive para o navegador via streaming HTTP.
     Zero consumo de disco na VPS.
     """
+    if not is_valid_gdrive_id(file_id):
+        return None, None
+
     token = get_gdrive_access_token()
     if not token:
         return None, None

@@ -2,13 +2,15 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from datetime import datetime
 from werkzeug.security import check_password_hash
+import os
 import sqlite3
 from database import query, execute, DB
 from utils import (
     motos_dropdown, DOC_CATEGORIES, get_gdrive_folder_id,
     ensure_moto_doc_subfolders, list_moto_documents,
     upload_moto_document, delete_moto_document,
-    stream_gdrive_file, create_venda_drive_folder
+    stream_gdrive_file, create_venda_drive_folder,
+    ALLOWED_DOC_EXTENSIONS, is_valid_gdrive_id, sanitize_filename_header
 )
 
 bp = Blueprint('vendas', __name__)
@@ -195,6 +197,10 @@ def _salvar_venda(editar, venda_id=None, lead_id=None, venda_original=None):
                         )""", d)
             venda_id = cur.lastrowid
             c.execute("UPDATE motos SET vendido=1, manter_catalogo=? WHERE id=?", (manter_catalogo, d["produto_id"]))
+            if d["produto_id"]:
+                moto_folder = query("SELECT drive_doc_folder_id FROM motos WHERE id=?", (d["produto_id"],), one=True)
+                if moto_folder and moto_folder["drive_doc_folder_id"]:
+                    c.execute("UPDATE vendas SET drive_doc_folder_id=? WHERE id=?", (moto_folder["drive_doc_folder_id"], venda_id))
 
     execute("DELETE FROM venda_custos WHERE venda_id=?", (venda_id,))
     for desc, val in zip(request.form.getlist("cv_desc"),
@@ -347,6 +353,12 @@ def vendas_documentos_upload(vid):
     for f in uploaded_files:
         if not f.filename:
             continue
+
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in ALLOWED_DOC_EXTENSIONS:
+            errors.append(f"{f.filename}: formato '{ext}' não permitido. Use PDF ou imagem (JPG, PNG, WEBP).")
+            continue
+
         # ZERO bytes no disco da VPS: leitura e streaming 100% em memória
         file_bytes = f.read()
         if not file_bytes:
@@ -413,6 +425,10 @@ def vendas_documentos_vincular(vid):
 @bp.route("/vendas/documentos/<int:vid>/excluir/<file_id>", methods=["POST"])
 @login_required
 def vendas_documentos_excluir(vid, file_id):
+    if not is_valid_gdrive_id(file_id):
+        flash("Identificador de arquivo inválido.", "error")
+        return redirect(url_for("vendas.vendas_documentos", vid=vid))
+
     venda = query("SELECT * FROM vendas WHERE id=?", (vid,), one=True)
     if not venda:
         flash("Venda não encontrada.", "error")
@@ -436,13 +452,17 @@ def vendas_documentos_download(file_id):
     Faz o streaming direto do arquivo original do Google Drive para o usuário
     sem salvar nenhum byte temporário no disco da VPS.
     """
+    if not is_valid_gdrive_id(file_id):
+        flash("Identificador de arquivo inválido.", "error")
+        return redirect(request.referrer or url_for("vendas.vendas_home"))
+
     stream_iter, content_type = stream_gdrive_file(file_id)
     if not stream_iter:
         flash("Não foi possível transferir o arquivo do Google Drive.", "error")
         return redirect(request.referrer or url_for("vendas.vendas_home"))
 
     filename = request.args.get("name", "documento")
-    safe_name = filename.replace('"', '').replace('\n', '')
+    safe_name = sanitize_filename_header(filename)
 
     return Response(
         stream_iter,
