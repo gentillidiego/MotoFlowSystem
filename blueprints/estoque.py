@@ -1,9 +1,20 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, Response
 from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash
 import sqlite3
+import logging
 from database import query, execute, DB
-from utils import to_float
+from utils import (
+    to_float,
+    list_moto_documents,
+    upload_moto_document,
+    delete_moto_document,
+    stream_gdrive_file,
+    create_moto_drive_folder,
+    get_gdrive_folder_id,
+    ensure_moto_doc_subfolders,
+    DOC_CATEGORIES
+)
 
 bp = Blueprint('estoque', __name__)
 
@@ -50,6 +61,7 @@ def estoque():
                            q=q)
 
 @bp.route("/estoque/origem/<origem>")
+@login_required
 def estoque_por_origem(origem):
     origem_map = {"consignadas":"Consignada","proprias":"Propria","fornecedor":"Fornecedor"}
     o = origem_map.get(origem.lower())
@@ -118,13 +130,25 @@ def estoque_form(i=None):
                        WHERE id=:id""", {**d, "id": i})
             moto_id = i
         else:
+            # Criação automática da pasta no Google Drive para novos veículos
+            drive_folder_id = None
+            try:
+                drive_folder_id = create_moto_drive_folder(
+                    d["modelo"], d["placa"], d["ano"], d["origem"]
+                )
+            except Exception as e:
+                logging.error("Falha ao criar pasta no Drive para moto nova: %s", e)
+
+            d["drive_doc_folder_id"] = drive_folder_id
             with sqlite3.connect(DB) as c:
                 cur = c.execute("""INSERT INTO motos(
                               modelo,chassi,placa,cor,ano,origem,
-                              preco_aquisicao,preco_venda,km,fotos_url,descricao
+                              preco_aquisicao,preco_venda,km,fotos_url,descricao,
+                              drive_doc_folder_id
                             ) VALUES (
                               :modelo,:chassi,:placa,:cor,:ano,:origem,
-                              :preco_aquisicao,:preco_venda,:km,:fotos_url,:descricao
+                              :preco_aquisicao,:preco_venda,:km,:fotos_url,:descricao,
+                              :drive_doc_folder_id
                             )""", d)
                 moto_id = cur.lastrowid
         execute("DELETE FROM moto_custos WHERE moto_id=?", (moto_id,))
@@ -152,3 +176,171 @@ def estoque_excluir(i):
         return jsonify({"success": True})
     else:
         return jsonify({"success": False, "error": "Usuário ou senha incorretos."}), 403
+
+# ==========================================
+# GESTÃO DE DOCUMENTAÇÃO (GOOGLE DRIVE)
+# ==========================================
+
+@bp.route("/estoque/documentos/<int:i>")
+@login_required
+def estoque_documentos(i):
+    moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
+    if not moto:
+        flash("Veículo não encontrado.", "error")
+        return redirect(url_for("estoque.estoque"))
+
+    folder_id = moto["drive_doc_folder_id"]
+    docs_data = list_moto_documents(folder_id) if folder_id else {
+        "categories": {}, "geral_files": [], "total_files": 0, "drive_url": None
+    }
+
+    return render_template(
+        "estoque_docs.html",
+        moto=moto,
+        docs=docs_data,
+        categories=DOC_CATEGORIES
+    )
+
+@bp.route("/estoque/documentos/<int:i>/upload", methods=["POST"])
+@login_required
+def estoque_documentos_upload(i):
+    moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
+    if not moto:
+        flash("Veículo não encontrado.", "error")
+        return redirect(url_for("estoque.estoque"))
+
+    categoria = request.form.get("categoria")
+    valid_keys = [c["key"] for c in DOC_CATEGORIES]
+    if categoria not in valid_keys:
+        flash("Categoria de documento inválida.", "error")
+        return redirect(url_for("estoque.estoque_documentos", i=i))
+
+    # Garante a pasta principal no Google Drive se ainda não tiver
+    folder_id = moto["drive_doc_folder_id"]
+    if not folder_id:
+        folder_id = create_moto_drive_folder(
+            moto["modelo"], moto["placa"], moto["ano"], moto["origem"]
+        )
+        if folder_id:
+            execute("UPDATE motos SET drive_doc_folder_id=? WHERE id=?", (folder_id, i))
+            moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
+        else:
+            flash("Falha ao inicializar pasta no Google Drive.", "error")
+            return redirect(url_for("estoque.estoque_documentos", i=i))
+
+    # Garante as subpastas e obtém o ID da subpasta alvo
+    subfolders = ensure_moto_doc_subfolders(folder_id)
+    target_info = subfolders.get(categoria)
+    if not target_info or not target_info.get("id"):
+        flash("Subpasta da categoria não encontrada no Drive.", "error")
+        return redirect(url_for("estoque.estoque_documentos", i=i))
+
+    target_subfolder_id = target_info["id"]
+
+    uploaded_files = request.files.getlist("files")
+    if not uploaded_files or (len(uploaded_files) == 1 and not uploaded_files[0].filename):
+        flash("Nenhum arquivo selecionado para upload.", "warning")
+        return redirect(url_for("estoque.estoque_documentos", i=i))
+
+    success_count = 0
+    errors = []
+
+    for f in uploaded_files:
+        if not f.filename:
+            continue
+        # Lê 100% em memória - ZERO bytes gravados no disco da VPS
+        file_bytes = f.read()
+        if not file_bytes:
+            continue
+        
+        ok, err = upload_moto_document(file_bytes, f.filename, target_subfolder_id, folder_id)
+        if ok:
+            success_count += 1
+        else:
+            errors.append(f"{f.filename}: {err}")
+
+    if success_count > 0:
+        flash(f"{success_count} arquivo(s) enviado(s) para o Google Drive com sucesso!", "success")
+    if errors:
+        flash(f"Alguns erros ocorreram: {'; '.join(errors)}", "error")
+
+    return redirect(url_for("estoque.estoque_documentos", i=i))
+
+@bp.route("/estoque/documentos/<int:i>/criar-pasta", methods=["POST"])
+@login_required
+def estoque_documentos_criar_pasta(i):
+    moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
+    if not moto:
+        flash("Veículo não encontrado.", "error")
+        return redirect(url_for("estoque.estoque"))
+
+    folder_id = create_moto_drive_folder(
+        moto["modelo"], moto["placa"], moto["ano"], moto["origem"]
+    )
+    if folder_id:
+        execute("UPDATE motos SET drive_doc_folder_id=? WHERE id=?", (folder_id, i))
+        flash("Estrutura completa de documentação criada no Google Drive com sucesso!", "success")
+    else:
+        flash("Erro ao criar pastas no Google Drive.", "error")
+
+    return redirect(url_for("estoque.estoque_documentos", i=i))
+
+@bp.route("/estoque/documentos/<int:i>/vincular", methods=["POST"])
+@login_required
+def estoque_documentos_vincular(i):
+    moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
+    if not moto:
+        flash("Veículo não encontrado.", "error")
+        return redirect(url_for("estoque.estoque"))
+
+    url_or_id = request.form.get("drive_folder_input", "").strip()
+    fid = get_gdrive_folder_id(url_or_id)
+    if not fid:
+        flash("Link ou ID de pasta do Google Drive inválido.", "error")
+        return redirect(url_for("estoque.estoque_documentos", i=i))
+
+    execute("UPDATE motos SET drive_doc_folder_id=? WHERE id=?", (fid, i))
+    # Garante as 5 subpastas dentro da pasta vinculada
+    ensure_moto_doc_subfolders(fid)
+    flash("Pasta do Google Drive vinculada com sucesso!", "success")
+    return redirect(url_for("estoque.estoque_documentos", i=i))
+
+@bp.route("/estoque/documentos/<int:i>/excluir/<file_id>", methods=["POST"])
+@login_required
+def estoque_documentos_excluir(i, file_id):
+    moto = query("SELECT * FROM motos WHERE id=?", (i,), one=True)
+    if not moto:
+        flash("Veículo não encontrado.", "error")
+        return redirect(url_for("estoque.estoque"))
+
+    ok, err = delete_moto_document(file_id, moto["drive_doc_folder_id"])
+    if ok:
+        flash("Documento excluído do Google Drive com sucesso!", "success")
+    else:
+        flash(f"Erro ao excluir documento: {err}", "error")
+
+    return redirect(url_for("estoque.estoque_documentos", i=i))
+
+@bp.route("/estoque/documentos/download/<file_id>")
+@login_required
+def estoque_documentos_download(file_id):
+    """
+    Faz o streaming direto do arquivo original do Google Drive para o usuário
+    sem salvar nenhum byte temporário no disco da VPS.
+    """
+    stream_iter, content_type = stream_gdrive_file(file_id)
+    if not stream_iter:
+        flash("Não foi possível transferir o arquivo do Google Drive.", "error")
+        return redirect(request.referrer or url_for("estoque.estoque"))
+
+    filename = request.args.get("name", "documento")
+    # Evita quebra de headers HTTP
+    safe_name = filename.replace('"', '').replace('\n', '')
+
+    return Response(
+        stream_iter,
+        content_type=content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}"'
+        }
+    )

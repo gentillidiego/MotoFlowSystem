@@ -70,11 +70,19 @@
         <tr onclick="document.getElementById('radio_{{ m.id }}').click();" style="cursor: pointer;">
           <td><input type="radio" name="moto_id" id="radio_{{ m.id }}" value="{{ m.id }}"></td>
           <td>
-            {% if m.fotos_url %}
-            <a href="{{ m.fotos_url }}" target="_blank" title="Ver Fotos">📷</a>
-            {% else %}
-            <span style="opacity:0.2">📷</span>
-            {% endif %}
+            <div style="display: flex; gap: 8px; align-items: center;">
+              {% if m.fotos_url %}
+              <a href="{{ m.fotos_url }}" target="_blank" title="Ver Fotos">📷</a>
+              {% else %}
+              <span style="opacity:0.2">📷</span>
+              {% endif %}
+
+              {% if m.drive_doc_folder_id %}
+              <a href="{{ url_for('estoque.estoque_documentos', i=m.id) }}" title="Documentos Conectados (Google Drive)" style="text-decoration: none; font-size: 1.05rem;">📄</a>
+              {% else %}
+              <a href="{{ url_for('estoque.estoque_documentos', i=m.id) }}" title="Sem Documentos (Clique para anexar)" style="opacity: 0.25; text-decoration: none; font-size: 1.05rem;">📄</a>
+              {% endif %}
+            </div>
           </td>
           <td>{{ m.id }}</td>
           <td>{{ m.modelo or '—' }}</td>
@@ -120,6 +128,9 @@
 
 <div
   style="position: sticky; bottom: 20px; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; display: flex; gap: 10px; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+  <button id="btnDocs" class="btn btn-primary" disabled style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+    <span>📄</span> Documentação
+  </button>
   <button id="btnEdit" class="btn btn-secondary" disabled>Editar</button>
   <button id="btnDel" class="btn btn-danger" disabled>Excluir</button>
 </div>
@@ -150,7 +161,8 @@
 <script>
   const f = document.getElementById('formTable'),
     e = document.getElementById('btnEdit'),
-    d = document.getElementById('btnDel');
+    d = document.getElementById('btnDel'),
+    docBtn = document.getElementById('btnDocs');
 
   let deleteTargetId = null;
 
@@ -195,8 +207,10 @@
       const sel = f.querySelector('input[name="moto_id"]:checked'),
         ok = !!sel;
       e.disabled = d.disabled = !ok;
+      if (docBtn) docBtn.disabled = !ok;
       if (ok) {
         const id = sel.value;
+        if (docBtn) docBtn.onclick = () => location.href = `${SCRIPT_ROOT}/estoque/documentos/${id}`;
         e.onclick = () => location.href = `${SCRIPT_ROOT}/estoque/editar/${id}`;
 
         d.onclick = () => {

@@ -9,5 +9,6 @@ services:
       - ./estoque.db:/app/estoque.db
       - ./static/images:/app/static/images
       - /home/diego/moto-flow-config:/home/diego/moto-flow-config:ro
+      - /home/diego/.config/rclone:/root/.config/rclone:ro
     env_file:
       - .env

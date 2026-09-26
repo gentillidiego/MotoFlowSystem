@@ -43,7 +43,8 @@ def init_db():
                 manter_catalogo INTEGER DEFAULT 0,
                 km INTEGER,
                 fotos_url TEXT,
-                descricao TEXT
+                descricao TEXT,
+                drive_doc_folder_id TEXT
             )""")
         c.execute("""
             CREATE TABLE IF NOT EXISTS moto_custos(

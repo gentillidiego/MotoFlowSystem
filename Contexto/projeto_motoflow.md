@@ -65,12 +65,28 @@ O sistema passou por uma fase intensa de otimização baseada no documento `anal
 - **Isca de Leads:** Implementação do controle `manter_catalogo` que permite ao vendedor ocultar uma moto do estoque após a venda, mas mantê-la visível no site para atrair mais clientes.
 - **Filtros e Navegação:** Adição de botões para filtrar o estoque ("0KM" vs "Semi Novas") via query parameters (`?filtro=`) preservando as regras de exibição originais. A logo do catálogo também foi convertida em um botão de reset/retorno rápido.
 
+### 📄 Documentação de Veículos (Google Drive Integrado - Zero Disco na VPS)
+- **Central de Documentos:** Botão "Documentação" no rodapé do Estoque e ícone de status direto na tabela levando à tela `/estoque/documentos/<id>`.
+- **5 Subcategorias Oficiais:**
+  1. `01_Documento_Veiculo` (CRLV / DUT)
+  2. `02_Codigo_Seguranca` (Código de Segurança do Veículo - CRV / ATPV)
+  3. `03_Documento_Comprador` (Documento do Comprador - CNH / RG / Comprovante)
+  4. `04_Documento_Vendedor` (Documento do Vendedor - Identificação)
+  5. `05_Fotos_Vistoria` (Fotos para Vistoria - Chassi / Motor / Hodômetro)
+- **Política Zero Disco na VPS:** NENHUM arquivo ou upload é salvo no disco da VPS.
+  - Imagens são otimizadas 100% em memória via Pillow (`io.BytesIO`) e enviadas por streaming pipe (`rclone rcat`) direto para a pasta da categoria no Google Drive.
+  - PDFs são transmitidos diretamente da memória para o Drive.
+  - Visualização usa thumbnails dinâmicos de alta velocidade servidos pelo CDN do Google Drive e iframe do Google Docs para PDFs.
+  - Botão "Baixar Original" faz stream direto do Google Drive para o navegador via chunks sem alocar arquivos temporários no servidor.
+- **Estrutura no Drive:** Pastas alocadas na conta comercial `confiance.motos@gmail.com` em `backup_motos > Usadas` / `Novas Shineray`.
+- **Criação Automática:** Ao cadastrar um novo veículo no estoque, a pasta e as 5 subpastas são criadas automaticamente no Google Drive.
+
 ---
 
 ## 5. Status Atual e Mecânicas Chave
 *   **Estado:** **Produção/Finalizado**. O sistema está estável, seguro e performante.
 *   **Mecânica de Venda:** Leads podem ser convertidos em Vendas. A Venda **não** cria uma Transferência automaticamente — o usuário precisa acionar manualmente `/transferencias/nova/<venda_id>` (botão "Iniciar Transf." na tela de Vendas) para abrir o workflow de documentação pós-venda.
-*   **Gestão de Fotos:** O sistema não armazena imagens localmente; ele gera thumbnails dinâmicos via Google Drive ID, economizando espaço em disco no servidor.
+*   **Gestão de Fotos e Documentos:** O sistema não armazena fotos nem documentos localmente; tudo opera via Google Drive API v3 e Rclone em streaming em memória.
 *   **Deploy:** 100% conteinerizado via Docker (`docker-compose.yml` + `Dockerfile`). **Não roda via `systemd`** — isso isola as dependências pesadas do WeasyPrint (`libpango`/`libffi`) do sistema Debian da VPS. Promover mudanças para produção: `docker compose up -d --build`. Domínio: `motoflowmaceio.com.br` (Nginx + Let's Encrypt).
 
 ---
@@ -84,4 +100,4 @@ Ao continuar este projeto, observe:
 5.  **Deploy:** Após validar qualquer alteração em `.py`, templates ou CSS, rode `docker compose up -d --build` para promover para produção — não é necessário aguardar confirmação do usuário para esse passo.
 
 ---
-*Atualizado em julho de 2026 para corrigir divergências sobre deploy (Docker, não systemd) e sobre a criação manual de Transferências.*
+*Atualizado em setembro de 2026 com o módulo completo de Documentação no Google Drive (Zero Disco VPS).*
